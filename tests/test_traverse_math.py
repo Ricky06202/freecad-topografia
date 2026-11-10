@@ -21,7 +21,7 @@ class TraverseMathTests(unittest.TestCase):
     def test_rectangle_from_four_tramos(self):
         rows = [station("P1", 100, 200, 5)]
         for i, (bearing, dist) in enumerate([
-            ("N90E", 10), ("N0E", 5), ("S90E", 10)
+            ("N90E", 10), ("N0E", 5), ("S90O", 10)
         ], start=2):
             last = rows[-1]
             east, north, z = point_from_tramo(
