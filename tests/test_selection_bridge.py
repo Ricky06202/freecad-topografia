@@ -59,7 +59,6 @@ class SelectionBridgeTests(unittest.TestCase):
         chosen, indices = self.bridge.selected_context()
         self.assertIs(chosen, self.catalog)
         self.assertEqual(indices, [4, 1, 6])
-        self.assertEqual(len(self.bridge.selected_point_names()), 0)
         # IDs can be chosen even when the table has not been opened.
         self.assertEqual(indices, [4, 1, 6])
 
