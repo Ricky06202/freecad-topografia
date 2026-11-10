@@ -16,6 +16,8 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
         from freecad.Topografia import commands  # Registra comandos
         from freecad.Topografia import sight_commands  # Importador Sight
         from freecad.Topografia import point_commands  # Editor de puntos
+        from freecad.Topografia import select_commands  # Selector normal del visor
+        from freecad.Topografia import tramo_commands  # Rumbos y distancias
         from freecad.Topografia import interactive_commands  # Dibujo en planta
         from freecad.Topografia import terrain_commands, subdivision_commands
         from freecad.Topografia import annotations
@@ -24,7 +26,9 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
         from freecad.Topografia import ui_dock  # Explorador lateral
         groups = {
             "Puntos": [
+                "Topografia_Seleccionar",
                 "Topografia_ImportarSight",
+                "Topografia_AgregarTramo",
                 "Topografia_PuntoPorClic",
                 "Topografia_ReubicarPunto",
                 "Topografia_AgregarPunto",
@@ -55,7 +59,9 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
             self.appendMenu(["Topografía", name], commands_in_group)
 
     def Activated(self):
-        from freecad.Topografia import ui_dock
+        from freecad.Topografia import interactive_commands, ui_dock
+        # Selección normal de FreeCAD es la herramienta predeterminada.
+        interactive_commands.stop_active()
         # La barra de FreeCAD muestra exclusivamente iconos; los nombres
         # permanecen accesibles por tooltip, barra de estado y menús.
         for toolbar in FreeCADGui.getMainWindow().findChildren(QtWidgets.QToolBar):
