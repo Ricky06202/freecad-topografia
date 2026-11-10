@@ -10,7 +10,7 @@ import FreeCADGui as Gui
 from PySide import QtCore, QtGui, QtSvg, QtWidgets
 
 from .commands import _selected_parcel, _points
-from .svg_report import create_svg
+from .svg_report import create_svg, coordinate_annex_pages
 from .dxf_report import create_dxf
 from .ui_resources import icon_path
 
@@ -78,7 +78,7 @@ class PlanDialog(QtWidgets.QDialog):
         super().accept()
 
 
-def _write_pdf(path, svg):
+def _write_pdf(path, svg_pages):
     # PDF vectorial por medio del renderer SVG de Qt.
     writer = QtGui.QPdfWriter(str(path))
     writer.setResolution(96)
@@ -87,16 +87,21 @@ def _write_pdf(path, svg):
     except (AttributeError, TypeError):
         writer.setPageSize(QtGui.QPagedPaintDevice.A4)
     writer.setPageOrientation(QtGui.QPageLayout.Landscape)
-    renderer = QtSvg.QSvgRenderer(QtCore.QByteArray(svg.encode("utf-8")))
-    if not renderer.isValid():
-        raise ValueError("El plano SVG no es válido para PDF")
     painter = QtGui.QPainter()
     if not painter.begin(writer):
         raise RuntimeError("No se pudo abrir el archivo PDF")
     try:
-        renderer.render(
-            painter, QtCore.QRectF(0, 0, float(writer.width()), float(writer.height()))
-        )
+        for index, svg in enumerate(svg_pages):
+            if index:
+                writer.newPage()
+            renderer = QtSvg.QSvgRenderer(QtCore.QByteArray(svg.encode("utf-8")))
+            if not renderer.isValid():
+                raise ValueError("El plano SVG no es válido para PDF")
+            renderer.render(
+                painter, QtCore.QRectF(
+                    0, 0, float(writer.width()), float(writer.height())
+                )
+            )
     finally:
         painter.end()
     if not Path(path).is_file() or Path(path).stat().st_size < 100:
@@ -178,7 +183,9 @@ class CreateSheet:
                 if fmt == "svg":
                     path.write_text(svg, encoding="utf-8")
                 else:
-                    _write_pdf(path, svg)
+                    _write_pdf(path, [svg] + coordinate_annex_pages(
+                        points, parcel.Label, values
+                    ))
             else:
                 dxf = create_dxf(points, parcel.Label, values)
                 if fmt == "dxf":
