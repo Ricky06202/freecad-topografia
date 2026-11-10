@@ -10,6 +10,7 @@ import FreeCADGui as Gui
 from PySide import QtCore, QtGui, QtWidgets
 
 from .geometry import measure
+from .survey_math import parcel_edges, interior_angles
 from .commands import _points
 from .ui_resources import icon_path
 
@@ -74,6 +75,19 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         grid.addRow("Hectáreas:", self.ha_value)
         grid.addRow("Perímetro:", self.perimeter_value)
         layout.addWidget(metrics)
+        sides_group = QtWidgets.QGroupBox("Tramos · rumbos y ángulos")
+        sides_layout = QtWidgets.QVBoxLayout(sides_group)
+        self.sides = QtWidgets.QTableWidget(0, 5)
+        self.sides.setHorizontalHeaderLabels([
+            "Tramo", "Dist. (m)", "Rumbo", "Azimut", "Ángulo int."
+        ])
+        self.sides.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.sides.setMaximumHeight(175)
+        self.sides.setAlternatingRowColors(True)
+        self.sides.verticalHeader().hide()
+        self.sides.horizontalHeader().setStretchLastSection(True)
+        sides_layout.addWidget(self.sides)
+        layout.addWidget(sides_group)
 
         layout.addWidget(QtWidgets.QLabel("PUNTOS · ESTE / NORTE / COTA"))
         self.points = QtWidgets.QTableWidget(0, 4)
@@ -185,6 +199,7 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         self.ha_value.setText("—")
         self.perimeter_value.setText("—")
         self.points.setRowCount(0)
+        self.sides.setRowCount(0)
         if selected_parcel:
             try:
                 original = _points(selected_parcel)
@@ -194,6 +209,21 @@ class ExplorerPanel(QtWidgets.QDockWidget):
                 self.perimeter_value.setText(
                     "{:,.3f} m".format(stats["perimeter_m"]))
                 self._show_points([(p.name, p.x, p.y, p.z) for p in original])
+                segments = parcel_edges(original)
+                angles = interior_angles(original)
+                self.sides.setRowCount(len(segments))
+                for i, side in enumerate(segments):
+                    values = (
+                        "{}–{}".format(side["inicio"], side["fin"]),
+                        "{:.3f}".format(side["horizontal_m"]),
+                        side["rumbo"],
+                        "{:.2f}°".format(side["azimut_grados"]),
+                        "{:.2f}°".format(angles[i]),
+                    )
+                    for j, value in enumerate(values):
+                        self.sides.setItem(
+                            i, j, QtWidgets.QTableWidgetItem(value)
+                        )
                 self.note.setText(
                     "Parcela {}. Confirma unidades y CRS antes de entregar planos."
                     .format(selected_parcel.Label))
