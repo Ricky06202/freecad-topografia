@@ -8,6 +8,7 @@ from PySide import QtWidgets
 
 from .geometry import Point, parse_points, measure
 from .svg_report import create_svg
+from .project import ensure_project, position_for
 
 EXAMPLE = (
     "Punto,Este,Norte,Cota\n"
@@ -85,19 +86,26 @@ class PointsDialog(QtWidgets.QDialog):
         super().accept()
 
 
-def _create_parcel(points):
+def _create_parcel(points, doc=None, label=None):
+    """Crea una parcela 2D; usa un único origen local por documento.
+
+    Si recibe 'doc', la transacción pertenece al importador que la llamó.
+    """
     stats = measure(points)
-    doc = App.ActiveDocument or App.newDocument("Topografia")
-    x0, y0 = points[0].x, points[0].y
-    # FreeCAD trabaja internamente en mm. Se usa un origen local para
-    # evitar que los números de coordenadas globales sean enormes.
-    vectors = [App.Vector((p.x - x0) * 1000, (p.y - y0) * 1000, 0)
-               for p in points]
-    doc.openTransaction("Crear parcela")
+    own_transaction = doc is None
+    doc = doc or App.ActiveDocument or App.newDocument("Topografia")
+    if own_transaction:
+        doc.openTransaction("Crear parcela")
     try:
+        project = ensure_project(doc, points[0])
+        vectors = []
+        for point in points:
+            location = position_for(project, point)
+            # La parcela mide una proyección horizontal (XY), no superficie 3D.
+            vectors.append(App.Vector(location.x, location.y, 0.0))
         shape = Part.Face(Part.makePolygon(vectors + [vectors[0]]))
         obj = doc.addObject("Part::Feature", "Parcela")
-        obj.Label = "Parcela"
+        obj.Label = label or "Parcela"
         obj.Shape = shape
         obj.addProperty("App::PropertyString", "CoordenadasJSON", "Topografia")
         obj.CoordenadasJSON = json.dumps(
@@ -110,23 +118,26 @@ def _create_parcel(points):
         obj.addProperty("App::PropertyFloat", "Hectareas", "Topografia")
         obj.Hectareas = stats["area_ha"]
         obj.addProperty("App::PropertyFloat", "OrigenEste", "Topografia")
-        obj.OrigenEste = x0
+        obj.OrigenEste = project.OrigenEste
         obj.addProperty("App::PropertyFloat", "OrigenNorte", "Topografia")
-        obj.OrigenNorte = y0
+        obj.OrigenNorte = project.OrigenNorte
+        project.addObject(obj)
+        obj.ViewObject.ShapeColor = (0.70, 0.88, 0.83)
+        obj.ViewObject.LineColor = (0.01, 0.47, 0.40)
+        obj.ViewObject.Transparency = 35
         doc.recompute()
-        doc.commitTransaction()
+        if own_transaction:
+            doc.commitTransaction()
     except Exception:
-        doc.abortTransaction()
+        if own_transaction:
+            doc.abortTransaction()
         raise
-    obj.ViewObject.ShapeColor = (0.70, 0.88, 0.83)
-    obj.ViewObject.LineColor = (0.01, 0.47, 0.40)
-    obj.ViewObject.Transparency = 35
-    Gui.activeDocument().activeView().viewTop()
-    Gui.activeDocument().activeView().fitAll()
-    Gui.Selection.clearSelection()
-    Gui.Selection.addSelection(obj)
+    if own_transaction:
+        Gui.activeDocument().activeView().viewTop()
+        Gui.activeDocument().activeView().fitAll()
+        Gui.Selection.clearSelection()
+        Gui.Selection.addSelection(obj)
     return obj
-
 
 class CreateParcel:
     def GetResources(self):
