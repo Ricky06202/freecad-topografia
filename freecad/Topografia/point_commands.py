@@ -195,7 +195,7 @@ class DeletePoint:
             except Exception:
                 doc.abortTransaction()
                 raise
-            _refresh(catalog)
+            _refresh(catalog if updated else None)
         except (ValueError, IndexError, RuntimeError) as exc:
             _error(exc)
 
