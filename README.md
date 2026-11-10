@@ -2,10 +2,12 @@
 
 Banco de trabajo (Workbench) para dibujar parcelas con coordenadas y consultar área, perímetro y hectáreas. Interfaz en español; proyecto piloto para uso personal.
 
-> Estado: prototipo 0.2. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+> Estado: prototipo 0.3. La interfaz nueva todavía necesita una prueba manual en FreeCAD. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
 
-## Funciones implementadas (0.2, integración en FreeCAD pendiente)
+## Funciones implementadas (0.3, nueva UX/UI por validar en FreeCAD)
 
+- **Interfaz 0.3:** barra de Topografía con cinco iconos SVG (Importar Sight, Crear parcela, Medir parcela, Exportar SVG y Mostrar/Ocultar explorador), descripción al pasar el cursor y ayuda en la barra de estado.
+- **Explorador lateral:** lista de parcelas y levantamientos importados, métricas de la parcela seleccionada y coordenadas de consulta. Se abre al activar Topografía y se oculta al cambiar a otro banco de trabajo.
 - **Importar Sight Survey**: abrir reportes TXT y ASCII ASC, reconocer listas de estaciones, recorridos abiertos y parcelas cerradas, con selección previa de polígonos y orden de ejes Norte/Este o Este/Norte.
 - **Crear parcela**: pegar una tabla de puntos o importar un CSV; construir un polígono cerrado en FreeCAD.
 - **Medir parcela**: leer área, hectáreas y perímetro de la parcela seleccionada.
@@ -16,7 +18,7 @@ Banco de trabajo (Workbench) para dibujar parcelas con coordenadas y consultar �
 
 ## Instalar paso a paso
 
-1. Instala FreeCAD 1.0 o posterior. Este prototipo aún **no ha sido probado dentro de FreeCAD**; se probará en el equipo real.
+1. Instala FreeCAD 1.0 o posterior. El usuario confirmó que el complemento 0.2 funcionó en su equipo; **el nuevo diseño 0.3 todavía no se ha probado en FreeCAD**.
 2. Abre FreeCAD. Activa **Ver → Paneles → Consola de Python** (View → Panels → Python console).
 3. Escribe en esa consola: `import os; print(os.path.join(App.getUserAppDataDir(), 'Mod'))` y pulsa Enter. Esa es la carpeta de complementos **de tu instalación**. Créala si aún no existe. La ubicación puede variar según FreeCAD, Flatpak, Snap o versión.
 4. Abre el repositorio privado en GitHub: https://github.com/Ricky06202/freecad-topografia. Pulsa **Code → Download ZIP** (inicia sesión con permisos). Descomprime el ZIP.
@@ -43,6 +45,18 @@ P4,500000,900005,0
 **Resultado:** 50 m², 0.005 ha y 30 m de perímetro. Introduce los vértices en orden alrededor de la parcela, sin cruzar lados; no es necesario repetir el primer punto al final.
 
 También se admiten `P1;500000;900000;0`, `500000,900000` o `500000 900000 0`. Usa punto como separador decimal y evita separadores de miles.
+
+## Nuevo panel e iconos en 0.3
+
+Los comandos de la barra **Topografía** aparecen como **iconos sin texto**. Pasa el cursor sobre cada icono para conocer su función; la barra de estado también presenta una descripción. Los comandos siguen disponibles con nombre en el menú Topografía.
+
+El último icono abre u oculta el explorador lateral. En él puedes seleccionar parcelas, revisar áreas, perímetros y hectáreas, y consultar las coordenadas de los vértices. También se pueden consultar los puntos de levantamientos importados que todavía no forman una parcela (hasta 250 filas visibles a la vez, sin borrar las demás).
+
+**La tabla es informativa, no editable** en esta versión. La edición de coordenadas llegará en una fase posterior. Las acciones de crear, importar, medir y exportar mantienen sus flujos existentes.
+
+Para actualizar desde 0.2, cierra FreeCAD, conserva una copia de tus documentos `.FCStd`, reemplaza los archivos del complemento o ejecuta `git pull` y vuelve a iniciar FreeCAD. El primer arranque de la interfaz 0.3 aún está pendiente de validación.
+
+[Decisiones de diseño y plan de pruebas](docs/UX_UI.md).
 
 ## Importar archivos de Sight Survey
 
