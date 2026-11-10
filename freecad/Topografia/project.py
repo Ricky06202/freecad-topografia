@@ -8,6 +8,12 @@ import Part
 def ensure_project(doc, first_point):
     project = doc.getObject("ProyectoTopografia")
     if project is not None:
+        if (abs(first_point.x - project.OrigenEste) > 100000.0 or
+                abs(first_point.y - project.OrigenNorte) > 100000.0):
+            raise ValueError(
+                "Las coordenadas están a más de 100 km del origen existente. "
+                "Abre un documento nuevo o verifica el CRS y los datos de origen."
+            )
         return project
     project = doc.addObject("App::DocumentObjectGroup", "ProyectoTopografia")
     project.Label = "Topografía — Proyecto"
