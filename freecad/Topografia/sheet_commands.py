@@ -25,8 +25,8 @@ class PlanDialog(QtWidgets.QDialog):
         form = QtWidgets.QFormLayout(self)
         help_text = QtWidgets.QLabel(
             "Plano con cuadro de puntos y cajetín editable. "
-            "La escala del dibujo impreso es esquemática: "
-            "verifícala antes de entregar documentación técnica."
+            "Elige una escala 1:N que quepa en la hoja y comprueba "
+            "la impresión al 100 %. El CRS debe verificarse."
         )
         help_text.setWordWrap(True)
         form.addRow(help_text)
@@ -55,6 +55,15 @@ class PlanDialog(QtWidgets.QDialog):
         self.kind.addItem("DWG (requiere conversor configurado)", "dwg")
         self.kind.setToolTip("DWG requiere ODA, LibreDWG o QCAD configurado en FreeCAD")
         form.addRow("Formato", self.kind)
+        self.scale = QtWidgets.QComboBox()
+        self.scale.addItem("Ajustar a página (esquemático)", "auto")
+        for denominator in (100, 200, 250, 500, 750, 1000, 2000, 5000):
+            self.scale.addItem("1:{}".format(denominator), denominator)
+        self.scale.setToolTip(
+            "Las escalas 1:N tienen tamaño físico calculado y se validan en A4. "
+            "Imprime el PDF sin ajustar (100 %)."
+        )
+        form.addRow("Escala del plano", self.scale)
         buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
         )
@@ -75,6 +84,7 @@ class PlanDialog(QtWidgets.QDialog):
             key: field.text().strip() for key, field in self.fields.items()
         }
         self.result["format"] = self.kind.currentData()
+        self.result["escala"] = self.scale.currentData()
         super().accept()
 
 
@@ -87,6 +97,9 @@ def _write_pdf(path, svg_pages):
     except (AttributeError, TypeError):
         writer.setPageSize(QtGui.QPagedPaintDevice.A4)
     writer.setPageOrientation(QtGui.QPageLayout.Landscape)
+    # Sin márgenes: el rectángulo de dibujo del SVG corresponde al A4
+    # completo y el factor metros -> milímetros es reproducible.
+    writer.setPageMargins(QtCore.QMarginsF(0, 0, 0, 0))
     painter = QtGui.QPainter()
     if not painter.begin(writer):
         raise RuntimeError("No se pudo abrir el archivo PDF")
@@ -205,8 +218,8 @@ class CreateSheet:
             QtWidgets.QMessageBox.information(
                 Gui.getMainWindow(), "Plano generado",
                 "Se guardó el archivo:\n{}\n\n"
-                "La escala y el sistema de referencia necesitan "
-                "verificación profesional.".format(path)
+                "Comprueba la escala impresa al 100 %, el CRS y "
+                "las mediciones antes de entregar documentación técnica.".format(path)
             )
         except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as exc:
             QtWidgets.QMessageBox.critical(
