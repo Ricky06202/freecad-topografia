@@ -1,11 +1,13 @@
 """Produce un plano SVG tamaño A4 horizontal para una parcela."""
 from xml.sax.saxutils import escape
 from .geometry import measure
+from .survey_math import parcel_edges
 
 
 def create_svg(points, label="Parcela", metadata=None):
     metadata = metadata or {}
     m = measure(points)
+    segments = parcel_edges(points)
     x0, x1 = min(p.x for p in points), max(p.x for p in points)
     y0, y1 = min(p.y for p in points), max(p.y for p in points)
     width, height = x1 - x0, y1 - y0
@@ -64,7 +66,10 @@ def create_svg(points, label="Parcela", metadata=None):
             '<text x="{:.2f}" y="{:.2f}" font-family="sans-serif" font-size="14" fill="#123">{}</text>'.format(
                 x + 8, y - 10, escape(p.name)),
             '<text x="{:.2f}" y="{:.2f}" font-family="sans-serif" font-size="12" fill="#456" text-anchor="middle">{:.2f} m</text>'.format(
-                (x + nx) / 2, (y + ny) / 2 - 7, m["sides_m"][i]),
+                (x + nx) / 2, (y + ny) / 2 - 9, m["sides_m"][i]),
+            '<text x="{:.2f}" y="{:.2f}" font-family="sans-serif" font-size="10" fill="#345" text-anchor="middle">{}</text>'.format(
+                (x + nx) / 2, (y + ny) / 2 + 7,
+                escape(segments[i]["rumbo"])),
         ])
     rows.extend([
         '<text x="839" y="162" font-family="sans-serif" font-size="20" fill="#123">MEDICIONES</text>',
