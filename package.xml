@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
+  <name>Topografía</name>
+  <description>Banco de trabajo para puntos, parcelas y mediciones de terrenos.</description>
+  <version>0.1.0</version>
+  <date>2026-11-10</date>
+  <maintainer>RSanjur</maintainer>
+  <url type="repository" branch="main">https://github.com/Ricky06202/freecad-topografia</url>
+  <url type="bugtracker">https://github.com/Ricky06202/freecad-topografia/issues</url>
+  <icon>freecad/Topografia/resources/topografia.svg</icon>
+  <content>
+    <workbench>
+      <classname>TopografiaWorkbench</classname>
+      <subdirectory>.</subdirectory>
+    </workbench>
+  </content>
+</package>
