@@ -2,10 +2,12 @@
 
 Banco de trabajo (Workbench) para dibujar parcelas con coordenadas y consultar área, perímetro y hectáreas. Interfaz en español; proyecto piloto para uso personal.
 
-> Estado: prototipo 0.3. La interfaz nueva todavía necesita una prueba manual en FreeCAD. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+> Estado: prototipo 0.4. El usuario confirmó funcionamiento de una versión previa en FreeCAD; **el editor de puntos y la exportación 0.4 requieren prueba manual**. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
 
-## Funciones implementadas (0.3, nueva UX/UI por validar en FreeCAD)
+## Funciones implementadas (0.4, pendiente de validar en FreeCAD)
 
+- **Puntos individuales (0.4):** botones con iconos para añadir un punto (Este, Norte, Cota, descripción), editar o eliminar la fila seleccionada, y conectar filas en orden para cerrar una parcela. Las parcelas creadas de esta forma se vinculan al catálogo: al editar un punto se recalculan, y se bloquea el borrado de un punto que la parcela necesite. Compatible con el flujo existente de archivos Sight.
+- **Planos con cajetín (0.4):** acción **Generar plano** con título del proyecto, autor («Ing. Ricardo» como valor editable, confirmar antes de usar), fecha y sistema de referencia. PDF vectorial con páginas adicionales para cuadros de coordenadas largos; SVG A4 esquemático; DXF CAD en metros con puntos, parcela, textos y cuadro completo; DWG mediante conversor externo configurado en FreeCAD (ODA, LibreDWG, QCAD). No se incluye firma profesional ni certificación de escala.
 - **Interfaz 0.3:** barra de Topografía con cinco iconos SVG (Importar Sight, Crear parcela, Medir parcela, Exportar SVG y Mostrar/Ocultar explorador), descripción al pasar el cursor y ayuda en la barra de estado.
 - **Explorador lateral:** lista de parcelas y levantamientos importados, métricas de la parcela seleccionada y coordenadas de consulta. Se abre al activar Topografía y se oculta al cambiar a otro banco de trabajo.
 - **Importar Sight Survey**: abrir reportes TXT y ASCII ASC, reconocer listas de estaciones, recorridos abiertos y parcelas cerradas, con selección previa de polígonos y orden de ejes Norte/Este o Este/Norte.
@@ -52,11 +54,23 @@ Los comandos de la barra **Topografía** aparecen como **iconos sin texto**. Pas
 
 El último icono abre u oculta el explorador lateral. En él puedes seleccionar parcelas, revisar áreas, perímetros y hectáreas, y consultar las coordenadas de los vértices. También se pueden consultar los puntos de levantamientos importados que todavía no forman una parcela (hasta 250 filas visibles a la vez, sin borrar las demás).
 
-**La tabla es informativa, no editable** en esta versión. La edición de coordenadas llegará en una fase posterior. Las acciones de crear, importar, medir y exportar mantienen sus flujos existentes.
+**La tabla es informativa, no editable directamente por doble clic** en esta versión. Los cambios se hacen mediante las herramientas «Editar punto» y «Eliminar punto» (versión 0.4). Las acciones de crear, importar, medir y exportar mantienen sus flujos existentes.
 
 Para actualizar desde 0.2, cierra FreeCAD, conserva una copia de tus documentos `.FCStd`, reemplaza los archivos del complemento o ejecuta `git pull` y vuelve a iniciar FreeCAD. El primer arranque de la interfaz 0.3 aún está pendiente de validación.
 
 [Decisiones de diseño y plan de pruebas](docs/UX_UI.md).
+
+## Flujo de puntos y planos (0.4)
+
+1. Entra en **Topografía** y pulsa el icono **Añadir punto**. Completa nombre, **Este (X)**, **Norte (Y)**, Cota y descripción; guarda. La primera estación crea el levantamiento manual.
+2. Para editar o eliminar, selecciona el **levantamiento** en el explorador lateral y una **fila** de la tabla; usa los iconos lápiz o papelera. Se confirma el borrado. No se puede eliminar un punto que pertenezca a una parcela vinculada sin antes cambiar esa parcela.
+3. Para conectar, marca **tres o más filas** con selección múltiple en el orden en el que aparecen en la tabla. Pulsa **Conectar puntos**. Si no hay selección, se ofrece conectar todos los puntos en orden de tabla (hasta 250 visibles). Comprueba que el orden no cruce los lados.
+4. Selecciona la parcela. Pulsa **Generar plano**, confirma título, nombre del profesional responsable, fecha y CRS, y elige el formato. La tabla de puntos y las mediciones se generan desde los valores del proyecto.
+5. **PDF:** hoja A4 horizontal con plano esquemático, mediciones y cajetín; si hay más de diez puntos, incluye páginas anexas con la tabla completa. **DXF:** geometría CAD editable en metros con puntos y textos; **DWG:** conversión externa, necesita ODA/LibreDWG/QCAD configurado en las preferencias de FreeCAD. En ausencia de conversor, usa DXF.
+
+**Importante:** se exporta una representación geométrica con coordenadas y escala **esquemática**, no un plano catastral certificado ni una lámina con escala cartográfica calibrada. El cuadro de autor es texto editable y no implica firma ni validación profesional. El nombre «Ing. Ricardo» es una propuesta basada en el ejemplo indicado por el usuario, no una identidad verificada.
+
+**Limitaciones:** todavía falta la edición gráfica arrastrando vértices, orden manual de puntos mediante «subir/bajar», arcos, subdivisión, mapas de CRS y ajuste de escala de impresión. No se ha probado el flujo 0.4 en FreeCAD dentro de este entorno.
 
 ## Importar archivos de Sight Survey
 
@@ -107,7 +121,7 @@ El alcance, dependencias y pruebas de aceptación están en [docs/ROADMAP.md](do
 ## Próximas versiones
 
 - Edición interactiva de puntos y linderos; etiquetas en el espacio de trabajo; estilos de plano.
-- PDF nativo y cuadros de coordenadas/áreas; división de terrenos; múltiples polígonos.
+- Escala cartográfica calibrada y láminas profesionales; edición gráfica; división de terrenos; múltiples polígonos.
 - Selección de sistema de referencia (CRS), importación GNSS y, si corresponde, curvas de nivel.
 
 ## Referencias e inspiración
