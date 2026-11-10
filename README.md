@@ -2,14 +2,17 @@
 
 Banco de trabajo (Workbench) para dibujar parcelas con coordenadas y consultar área, perímetro y hectáreas. Interfaz en español; proyecto piloto para uso personal.
 
-> Estado: prototipo 0.1. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+> Estado: prototipo 0.2. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
 
-## Qué funciona en 0.1
+## Funciones implementadas (0.2, integración en FreeCAD pendiente)
 
+- **Importar Sight Survey**: abrir reportes TXT y ASCII ASC, reconocer listas de estaciones, recorridos abiertos y parcelas cerradas, con selección previa de polígonos y orden de ejes Norte/Este o Este/Norte.
 - **Crear parcela**: pegar una tabla de puntos o importar un CSV; construir un polígono cerrado en FreeCAD.
 - **Medir parcela**: leer área, hectáreas y perímetro de la parcela seleccionada.
 - **Exportar plano SVG**: crear una lámina vectorial con puntos, distancias de lados y métricas. Se abre en navegadores o Inkscape y puede imprimirse como PDF.
-- Trabaja con coordenadas planas **en metros** (Este/X, Norte/Y) y guarda los valores originales. La geometría de FreeCAD se ubica respecto del primer punto y convierte metros a milímetros para evitar coordenadas enormes.
+- Trabaja con coordenadas planas **en metros** (Este/X, Norte/Y) y guarda los valores originales. Todas las parcelas de un documento comparten un origen CAD local expresado en milímetros. **No asigna ni transforma CRS por sí solo**.
+- Los archivos con arcos se detectan, pero **no se convierten automáticamente en parcelas rectilíneas** ni se calcula su área curva. Los formatos binarios XYZ/ZAK no son compatibles todavía.
+- Los registros distantes más de 100 km se marcan como potenciales conjuntos de coordenadas distintos: importa un conjunto por proyecto hasta confirmar CRS y unidades.
 
 ## Instalar paso a paso
 
@@ -41,6 +44,17 @@ P4,500000,900005,0
 
 También se admiten `P1;500000;900000;0`, `500000,900000` o `500000 900000 0`. Usa punto como separador decimal y evita separadores de miles.
 
+## Importar archivos de Sight Survey
+
+1. Entra en el banco **Topografía** y selecciona **Importar Sight (TXT/ASC)**.
+2. Abre un `.TXT` con historial Sight o un `.ASC` textual exportado por Sight. No renombres un binario `.XYZ`/`.ZAK` como TXT: seguirá siendo binario.
+3. Revisa el **orden de coordenadas**. Por defecto se interpreta **Norte, Este, Cota** (los reportes Sight suelen seguir ese orden); el modelo FreeCAD usa **Este = X, Norte = Y**.
+4. En la tabla, marca las parcelas cerradas que deseas crear. Los recorridos abiertos, arcos y geometrías dudosas aparecen identificados y no se convierten silenciosamente en polígonos.
+5. Acepta para guardar el catálogo de puntos y las parcelas elegidas en el proyecto de FreeCAD.
+6. Si el informe mezcla bloques de coordenadas muy alejados, selecciona un conjunto a la vez y crea **un documento FreeCAD nuevo** para el otro. Verifica datum/CRS antes de combinar datos.
+
+**Privacidad y precisión:** los levantamientos originales se leen sin modificarlos. Evita publicarlos, compartirlos o usarlos para planos oficiales sin autorización y revisión técnica.
+
 ## Uso
 
 1. Entra en **Topografía**.
@@ -71,6 +85,10 @@ freecad-topografia/
 │       └── resources/topografia.svg
 └── tests/test_geometry.py
 ```
+
+## Plan completo
+
+El alcance, dependencias y pruebas de aceptación están en [docs/ROADMAP.md](docs/ROADMAP.md). Primero validar el registro del banco en FreeCAD; después edición de puntos, geometría curva, subdivisiones, terreno y planos completos.
 
 ## Próximas versiones
 
