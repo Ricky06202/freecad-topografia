@@ -106,6 +106,13 @@ def contour_segments(points, triangles, interval):
         level = number * interval
         for tri in triangles:
             nodes = [points[index] for index in tri]
+            edges = ((nodes[0], nodes[1]),
+                     (nodes[1], nodes[2]), (nodes[2], nodes[0]))
+            # Un borde entero exactamente sobre la cota es ambiguo y
+            # NO debe reconstruirse usando sus dos extremos.
+            if any(abs(a.z - level) <= 1e-9 and
+                   abs(b.z - level) <= 1e-9 for a, b in edges):
+                continue
             hits = []
             for a, b in ((nodes[0], nodes[1]),
                          (nodes[1], nodes[2]), (nodes[2], nodes[0])):
