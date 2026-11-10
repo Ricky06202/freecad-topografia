@@ -9,9 +9,28 @@ def create_svg(points, label="Parcela", metadata=None):
     x0, x1 = min(p.x for p in points), max(p.x for p in points)
     y0, y1 = min(p.y for p in points), max(p.y for p in points)
     width, height = x1 - x0, y1 - y0
-    scale = min(640 / max(width, 0.001), 480 / max(height, 0.001))
+    requested = metadata.get("escala")
+    if requested not in (None, "", "auto"):
+        try:
+            denominator = int(str(requested))
+        except (TypeError, ValueError):
+            raise ValueError("La escala debe ser un denominador entero (1:N)")
+        if denominator < 1:
+            raise ValueError("La escala debe ser positiva")
+        # 297 mm en 1122 unidades SVG: el tamaño físico a 100 % es conocido.
+        scale = 1000.0 / denominator * (1122.0 / 297.0)
+        if width * scale > 680 or height * scale > 420:
+            raise ValueError(
+                "La parcela no cabe a escala 1:{} en A4 horizontal. "
+                "Elige un denominador mayor o una hoja más grande."
+                .format(denominator)
+            )
+        scale_label = "Escala: 1:{} (imprimir al 100 %)".format(denominator)
+    else:
+        scale = min(680 / max(width, 0.001), 420 / max(height, 0.001))
+        scale_label = "Escala: esquemática (no acotada)"
     offset_x = 430 - width * scale / 2
-    offset_y = 420 - height * scale / 2
+    offset_y = 385 - height * scale / 2
 
     def xy(p):
         return (offset_x + (p.x - x0) * scale,
@@ -33,8 +52,10 @@ def create_svg(points, label="Parcela", metadata=None):
         '<rect x="20" y="20" width="1082" height="754" fill="none" stroke="#234" stroke-width="2"/>',
         '<text x="55" y="70" font-family="sans-serif" font-size="29" font-weight="bold" fill="#124">PLANO DE PARCELA</text>',
         '<text x="55" y="103" font-family="sans-serif" font-size="16" fill="#456">{}</text>'.format(escape(str(label))),
-        '<rect x="55" y="130" width="755" height="575" fill="#f6faf9" stroke="#abc"/>',
+        '<rect x="55" y="130" width="755" height="490" fill="#f6faf9" stroke="#abc"/>',
         '<path d="{}" fill="#c5e6dd" stroke="#087b72" stroke-width="3"/>'.format(path),
+        '<path d="M775 168 L775 203 M775 168 L769 184 M775 168 L781 184" fill="none" stroke="#234" stroke-width="2"/>',
+        '<text x="775" y="161" text-anchor="middle" font-family="sans-serif" font-size="17">N</text>',
     ]
     for i, (p, (x, y)) in enumerate(zip(points, positions)):
         nx, ny = positions[(i + 1) % len(positions)]
@@ -69,7 +90,7 @@ def create_svg(points, label="Parcela", metadata=None):
         '<text x="738" y="677" font-family="sans-serif" font-size="19">{}</text>'.format(author),
         '<text x="72" y="706" font-family="sans-serif" font-size="14">Fecha: {}</text>'.format(date),
         '<text x="72" y="728" font-family="sans-serif" font-size="14">CRS: {}</text>'.format(crs),
-        '<text x="738" y="708" font-family="sans-serif" font-size="14">Escala: esquemática / no certificada</text>',
+        '<text x="738" y="708" font-family="sans-serif" font-size="13">{}</text>'.format(escape(scale_label)),
         '<text x="738" y="730" font-family="sans-serif" font-size="12">Área horizontal: {:.3f} m²</text>'.format(m["area_m2"]),
         '<text x="72" y="750" font-family="sans-serif" font-size="11" fill="#456">Cuadro de puntos: 10 primeros; exporta CSV para lista completa. Revisión técnica requerida.</text>',
         '</svg>',
