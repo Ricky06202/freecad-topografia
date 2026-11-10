@@ -52,8 +52,8 @@ class PlanDialog(QtWidgets.QDialog):
         self.kind.addItem("PDF vectorial (A4 horizontal)", "pdf")
         self.kind.addItem("SVG vectorial (A4 horizontal)", "svg")
         self.kind.addItem("DXF editable (metros)", "dxf")
-        self.kind.addItem("DWG (requiere LibreDWG dxf2dwg)", "dwg")
-        self.kind.setToolTip("DWG necesita el convertidor externo LibreDWG instalado")
+        self.kind.addItem("DWG (requiere conversor configurado)", "dwg")
+        self.kind.setToolTip("DWG requiere ODA, LibreDWG o QCAD configurado en FreeCAD")
         form.addRow("Formato", self.kind)
         buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
@@ -109,30 +109,40 @@ def _write_pdf(path, svg_pages):
 
 
 def _write_dwg(path, dxf):
-    converter = shutil.which("dxf2dwg")
-    if not converter:
-        raise RuntimeError(
-            "Para crear DWG instala LibreDWG (comando dxf2dwg) y "
-            "reinicia FreeCAD. También puedes exportar DXF directamente."
-        )
-    with tempfile.TemporaryDirectory(prefix="topografia-") as directory:
-        source = Path(directory) / "plano.dxf"
-        source.write_text(dxf, encoding="ascii", newline="")
-        completed = subprocess.run(
-            [converter, "-o", str(path), str(source)],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            timeout=45, check=False
-        )
-        if completed.returncode != 0 or not Path(path).is_file():
-            raise RuntimeError(
-                "LibreDWG no pudo convertir el DXF a DWG. "
-                "Prueba con el DXF original; comprueba el conversor."
-            )
-        # Asegurar que se produjo un archivo binario DWG, no un mensaje de error.
-        with Path(path).open("rb") as file:
-            if file.read(4) != b"AC10":
-                raise RuntimeError("La salida del conversor no parece ser un DWG válido")
+    """Usa la configuración DWG de FreeCAD o, en su defecto, LibreDWG.
 
+    No instala conversores ni envía los planos a servicios externos.
+    """
+    with tempfile.TemporaryDirectory(prefix="topografia-") as directory:
+        source = Path(directory) / (Path(path).stem + ".dxf")
+        source.write_text(dxf, encoding="ascii", newline="")
+        converted = False
+        try:
+            import importDWG
+            importDWG.convertToDwg(str(source), str(path))
+            converted = Path(path).is_file()
+        except (ImportError, AttributeError, OSError):
+            pass
+        if not converted:
+            converter = shutil.which("dxf2dwg")
+            if converter is None:
+                raise RuntimeError(
+                    "DWG necesita un conversor externo. Configura ODA o LibreDWG "
+                    "en FreeCAD: Editar → Preferencias → Importar/Exportar → DWG. "
+                    "Mientras tanto puedes generar DXF sin conversor."
+                )
+            completed = subprocess.run(
+                [converter, "-o", str(path), str(source)],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                timeout=45, check=False
+            )
+            if completed.returncode != 0 or not Path(path).is_file():
+                raise RuntimeError("Falló la conversión de DXF a DWG")
+        with Path(path).open("rb") as data:
+            if data.read(4) != b"AC10":
+                raise RuntimeError(
+                    "La salida del conversor no parece ser un DWG válido"
+                )
 
 class CreateSheet:
     def GetResources(self):
