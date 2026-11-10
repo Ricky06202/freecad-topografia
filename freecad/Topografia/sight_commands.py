@@ -183,12 +183,35 @@ class ImportSight:
         doc = App.ActiveDocument or App.newDocument("Topografia")
         doc.openTransaction("Importar archivo Sight Survey")
         try:
-            add_catalog(doc, report, Path(path).name, preview.order.currentData())
+            catalog = add_catalog(
+                doc, report, Path(path).name, preview.order.currentData()
+            )
+            # Relacionar puntos del informe con las parcelas importadas.
+            # Si hay nombres idénticos en el historial, conservar la
+            # coincidencia de nombre Y coordenadas originales.
+            index_by_point = {}
+            for row_index, (point, description, line) in enumerate(report.points):
+                key = (point.name, point.x, point.y, point.z)
+                index_by_point.setdefault(key, row_index)
             for i, traverse in enumerate(chosen, 1):
-                _create_parcel(
-                    traverse.vertices(), doc=doc,
-                    label="Parcela Sight {:02d}".format(i)
+                points = traverse.vertices()
+                parcel = _create_parcel(
+                    points, doc=doc, label="Parcela Sight {:02d}".format(i)
                 )
+                indices = [
+                    index_by_point.get((p.name, p.x, p.y, p.z))
+                    for p in points
+                ]
+                if all(index is not None for index in indices):
+                    import json
+                    parcel.addProperty(
+                        "App::PropertyLink", "CatalogoPuntos", "Topografia"
+                    )
+                    parcel.CatalogoPuntos = catalog
+                    parcel.addProperty(
+                        "App::PropertyString", "IndicesPuntosJSON", "Topografia"
+                    )
+                    parcel.IndicesPuntosJSON = json.dumps(indices)
             doc.recompute()
             doc.commitTransaction()
         except Exception as exc:
