@@ -7,7 +7,7 @@ import json
 
 import FreeCAD as App
 import FreeCADGui as Gui
-from PySide import QtCore, QtWidgets
+from PySide import QtCore, QtGui, QtWidgets
 
 from .geometry import measure
 from .commands import _points
@@ -80,6 +80,7 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         self.points.setObjectName("TopografiaTablaPuntos")
         self.points.setHorizontalHeaderLabels(["Punto", "Este", "Norte", "Cota"])
         self.points.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.points.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.points.setAlternatingRowColors(True)
         self.points.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.points.verticalHeader().hide()
@@ -88,6 +89,24 @@ class ExplorerPanel(QtWidgets.QDockWidget):
             "Coordenadas originales en metros. Tabla informativa, no editable todavía"
         )
         layout.addWidget(self.points, 1)
+        tools = QtWidgets.QHBoxLayout()
+        for command, name, hint in (
+            ("Topografia_AgregarPunto", "agregar-punto", "Añadir punto"),
+            ("Topografia_EditarPunto", "editar-punto", "Editar punto seleccionado"),
+            ("Topografia_EliminarPunto", "eliminar-punto", "Eliminar punto seleccionado"),
+            ("Topografia_ConectarPuntos", "conectar-puntos", "Conectar filas seleccionadas"),
+        ):
+            button = QtWidgets.QToolButton()
+            button.setIcon(QtGui.QIcon(icon_path(name)))
+            button.setIconSize(QtCore.QSize(26, 26))
+            button.setToolTip(hint)
+            button.setAccessibleName(hint)
+            button.clicked.connect(
+                lambda checked=False, cmd=command: Gui.runCommand(cmd)
+            )
+            tools.addWidget(button)
+        tools.addStretch()
+        layout.addLayout(tools)
 
         self.note = QtWidgets.QLabel(
             "Las coordenadas de origen y el CRS deben verificarse antes de "
@@ -200,6 +219,17 @@ class ExplorerPanel(QtWidgets.QDockWidget):
             if parcels or catalogs else
             "Sin datos. Usa Importar Sight o Crear parcela."
         )
+    def active_catalog(self):
+        row = self.catalogs.currentRow()
+        if 0 <= row < len(self._catalog_objects):
+            return self._catalog_objects[row]
+        return None
+
+    def selected_point_indices(self, catalog):
+        if catalog is None or self.active_catalog() != catalog:
+            return []
+        return sorted({item.row() for item in self.points.selectedIndexes()})
+
 
 class _SelectionObserver:
     def addSelection(self, *args):
@@ -274,3 +304,13 @@ class ToggleExplorer:
 
 
 Gui.addCommand("Topografia_MostrarPanel", ToggleExplorer())
+
+
+def active_catalog():
+    return _panel.active_catalog() if _panel is not None and _panel.isVisible() else None
+
+
+def selected_point_indices(catalog):
+    if _panel is not None and _panel.isVisible():
+        return _panel.selected_point_indices(catalog)
+    return []

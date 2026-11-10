@@ -15,9 +15,14 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
     def Initialize(self):
         from freecad.Topografia import commands  # Registra comandos
         from freecad.Topografia import sight_commands  # Importador Sight
+        from freecad.Topografia import point_commands  # Editor de puntos
         from freecad.Topografia import ui_dock  # Explorador lateral
         names = [
             "Topografia_ImportarSight",
+            "Topografia_AgregarPunto",
+            "Topografia_EditarPunto",
+            "Topografia_EliminarPunto",
+            "Topografia_ConectarPuntos",
             "Topografia_CrearParcela",
             "Topografia_MedirParcela",
             "Topografia_ExportarPlano",
