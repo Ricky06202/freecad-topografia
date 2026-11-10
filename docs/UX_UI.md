@@ -67,3 +67,19 @@ La acción **Generar plano** abre un formulario editable de título, elaborado p
 5. Crear PDF con 40 puntos y comprobar segunda hoja y cajetín; inspeccionar legibilidad y orientación.
 6. Abrir DXF en un lector externo y comprobar unidades, nombres y coordenadas.
 7. Si está instalado un conversor DWG, exportar y abrir el archivo en CAD; sin conversor debe aparecer una explicación y conservar la opción DXF.
+
+## Extensión 0.5 — flujo de trabajo completo, por etapas verificables
+
+**Menús y barras de iconos:** los comandos están separados en **Puntos, Parcelas, Terreno y Planos**. En cada barra aparecen únicamente iconos; las descripciones se obtienen por tooltip, barra de estado o menú con nombre.
+
+**Puntos:** creación manual, puntos por clic en planta (botón izquierdo), reubicación por clic de una estación seleccionada, corrección numérica, borrado con protección de vínculos y unión de vértices. Esc/clic derecho sale del modo de dibujo. Los puntos por clic pertenecen al plano local, no equivalen automáticamente a coordenadas cartográficas o GPS.
+
+**Parcelas:** conectar, medir área, tramos y rumbos; división 1–99 % por recta paralela a Este/Norte para polígonos convexos y etiquetado Draft en el visor (hasta 150 vértices). Los lotes son independientes: repetir subdivisión tras cambiar origen.
+
+**Terreno:** TIN Delaunay, curvas de nivel interpoladas con equidistancia, perfil longitudinal SVG y corte/relleno entre dos catálogos compatibles con igual Este/Norte por estación. TIN máximo 400 estaciones; sin breaklines, extrapolación, suavizado ni certificación. Perfiles sin escala vertical/horizontal homologada.
+
+**Planos:** impresión SVG/PDF con norte y escala 1:100, 1:200, 1:250, 1:500, 1:750, 1:1000, 1:2000 o 1:5000; si no cabe, se indica error, no se reduce en silencio. Ajuste automático produce lámina esquemática. PDF con márgenes de 0 en el escritor y tamaño A4. Comprobar impresión a 100 % con regla; no sustituye escala legal o la determinación de CRS.
+
+**Pruebas pendientes en GUI:** el usuario confirmó una versión anterior, pero no hay FreeCAD en el runner de GitHub. Comprobar el modo clic, la selección de filas, rótulos Draft tras edición, las cuatro barras, TIN sobre cotas reales, subdivisión, reporte perfil, cubicación con dos conjuntos de igual XY y PDF impreso. La entrega oficial está prohibida sin validación técnica.
+
+**Pruebas sintéticas del núcleo:** tests de geometría, ángulos, TIN, curvas, conservación de áreas, perfil, cubicación uniforme/mix de corte-relleno y relación 1:500 en SVG. No se versionan muestras privadas.
