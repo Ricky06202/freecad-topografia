@@ -17,6 +17,7 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
         from freecad.Topografia import sight_commands  # Importador Sight
         from freecad.Topografia import point_commands  # Editor de puntos
         from freecad.Topografia import interactive_commands  # Dibujo en planta
+        from freecad.Topografia import terrain_commands, subdivision_commands
         from freecad.Topografia import sheet_commands  # Planos
         from freecad.Topografia import ui_dock  # Explorador lateral
         names = [
@@ -27,6 +28,9 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
             "Topografia_EditarPunto",
             "Topografia_EliminarPunto",
             "Topografia_ConectarPuntos",
+            "Topografia_Subdividir",
+            "Topografia_SuperficieTIN",
+            "Topografia_CurvasNivel",
             "Topografia_CrearParcela",
             "Topografia_MedirParcela",
             "Topografia_ExportarPlano",
