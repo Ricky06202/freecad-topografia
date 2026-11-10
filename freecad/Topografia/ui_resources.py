@@ -1,7 +1,7 @@
 """Recursos compartidos por los comandos del banco de trabajo Topografía."""
 from pathlib import Path
 
-_ICONS = {"importar-sight", "crear-parcela", "medir-parcela", "exportar-plano", "panel", "agregar-punto", "editar-punto", "eliminar-punto", "conectar-puntos", "generar-plano"}
+_ICONS = {"importar-sight", "crear-parcela", "medir-parcela", "exportar-plano", "panel", "agregar-punto", "editar-punto", "eliminar-punto", "conectar-puntos", "generar-plano", "clic-punto", "mover-punto"}
 
 
 def icon_path(name):

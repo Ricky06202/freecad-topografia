@@ -16,10 +16,13 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
         from freecad.Topografia import commands  # Registra comandos
         from freecad.Topografia import sight_commands  # Importador Sight
         from freecad.Topografia import point_commands  # Editor de puntos
+        from freecad.Topografia import interactive_commands  # Dibujo en planta
         from freecad.Topografia import sheet_commands  # Planos
         from freecad.Topografia import ui_dock  # Explorador lateral
         names = [
             "Topografia_ImportarSight",
+            "Topografia_PuntoPorClic",
+            "Topografia_ReubicarPunto",
             "Topografia_AgregarPunto",
             "Topografia_EditarPunto",
             "Topografia_EliminarPunto",
@@ -44,7 +47,8 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
         ui_dock.show_panel()
 
     def Deactivated(self):
-        from freecad.Topografia import ui_dock
+        from freecad.Topografia import interactive_commands, ui_dock
+        interactive_commands.stop_active()
         ui_dock.hide_panel()
 
     def GetClassName(self):
