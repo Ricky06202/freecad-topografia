@@ -137,7 +137,7 @@ class ImportSight:
         return {
             "Pixmap": icon_path("importar-sight"),
             "MenuText": "Importar Sight (TXT/ASC)",
-            "ToolTip": "Importar Sight\\nLeer archivos de puntos TXT o ASC",
+            "ToolTip": "Importar Sight\nLeer archivos de puntos TXT o ASC",
             "StatusTip": "Importar puntos y parcelas desde informes Sight Survey",
         }
 
@@ -199,6 +199,8 @@ class ImportSight:
             return
         Gui.activeDocument().activeView().viewTop()
         Gui.activeDocument().activeView().fitAll()
+        from .ui_dock import refresh_panel
+        refresh_panel()
         QtWidgets.QMessageBox.information(
             Gui.getMainWindow(), "Importación completada",
             "Guardadas {} filas de puntos y {} parcelas rectilíneas.\n"

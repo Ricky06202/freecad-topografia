@@ -3,6 +3,8 @@
 Mantiene la vista central libre. No modifica coordenadas: la edición se
 implementará después, con transacciones y validaciones topográficas.
 """
+import json
+
 import FreeCAD as App
 import FreeCADGui as Gui
 from PySide import QtCore, QtWidgets
@@ -21,6 +23,7 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         )
         self.setMinimumWidth(280)
         self._objects = []
+        self._catalog_objects = []
         self._updating = False
         page = QtWidgets.QWidget(self)
         self.setWidget(page)
@@ -53,6 +56,15 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         self.parcels.currentRowChanged.connect(self.select_parcel)
         layout.addWidget(self.parcels)
 
+        layout.addWidget(QtWidgets.QLabel("LEVANTAMIENTOS"))
+        self.catalogs = QtWidgets.QListWidget()
+        self.catalogs.setObjectName("TopografiaListaLevantamientos")
+        self.catalogs.setMaximumHeight(105)
+        self.catalogs.setMinimumHeight(65)
+        self.catalogs.setToolTip("Ver puntos importados aunque todavía no exista parcela")
+        self.catalogs.currentRowChanged.connect(self.select_catalog)
+        layout.addWidget(self.catalogs)
+
         metrics = QtWidgets.QGroupBox("Mediciones horizontales")
         grid = QtWidgets.QFormLayout(metrics)
         self.area_value = QtWidgets.QLabel("—")
@@ -63,7 +75,7 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         grid.addRow("Perímetro:", self.perimeter_value)
         layout.addWidget(metrics)
 
-        layout.addWidget(QtWidgets.QLabel("VÉRTICES · ESTE / NORTE / COTA"))
+        layout.addWidget(QtWidgets.QLabel("PUNTOS · ESTE / NORTE / COTA"))
         self.points = QtWidgets.QTableWidget(0, 4)
         self.points.setObjectName("TopografiaTablaPuntos")
         self.points.setHorizontalHeaderLabels(["Punto", "Este", "Norte", "Cota"])
@@ -85,10 +97,7 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         layout.addWidget(self.note)
         self.refresh()
 
-    def select_parcel(self, row):
-        if self._updating or row < 0 or row >= len(self._objects):
-            return
-        obj = self._objects[row]
+    def _select_object(self, obj):
         try:
             Gui.Selection.clearSelection()
             Gui.Selection.addSelection(obj)
@@ -96,29 +105,60 @@ class ExplorerPanel(QtWidgets.QDockWidget):
             return
         self.refresh()
 
+    def select_parcel(self, row):
+        if not self._updating and 0 <= row < len(self._objects):
+            self._select_object(self._objects[row])
+
+    def select_catalog(self, row):
+        if not self._updating and 0 <= row < len(self._catalog_objects):
+            self._select_object(self._catalog_objects[row])
+
+    def _show_points(self, rows):
+        self.points.setRowCount(min(250, len(rows)))
+        for i, (name, x, y, z) in enumerate(rows[:250]):
+            values = (str(name), "{:.3f}".format(float(x)),
+                      "{:.3f}".format(float(y)), "{:.3f}".format(float(z)))
+            for j, value in enumerate(values):
+                self.points.setItem(i, j, QtWidgets.QTableWidgetItem(value))
+
     def refresh(self):
         doc = App.ActiveDocument
-        objects = [
-            obj for obj in doc.Objects if hasattr(obj, "CoordenadasJSON")
-        ] if doc else []
+        parcels = ([o for o in doc.Objects if hasattr(o, "CoordenadasJSON")]
+                   if doc else [])
+        catalogs = ([o for o in doc.Objects if hasattr(o, "PuntosJSON")]
+                    if doc else [])
         selected = Gui.Selection.getSelection() if doc else []
-        current = next(
-            (obj for obj in selected if hasattr(obj, "CoordenadasJSON")
-             and obj.Document == doc), None
-        )
-        if current is None and len(objects) == 1:
-            current = objects[0]
-        self._objects = objects
+        selected_obj = next((
+            o for o in selected if o.Document == doc and (
+                hasattr(o, "CoordenadasJSON") or hasattr(o, "PuntosJSON"))
+        ), None)
+        selected_parcel = (selected_obj if selected_obj is not None
+                           and hasattr(selected_obj, "CoordenadasJSON") else None)
+        selected_catalog = (selected_obj if selected_obj is not None
+                            and hasattr(selected_obj, "PuntosJSON") else None)
+        if selected_obj is None and len(parcels) == 1:
+            selected_parcel = parcels[0]
+        if selected_obj is None and selected_parcel is None and len(catalogs) == 1:
+            selected_catalog = catalogs[0]
+        self._objects, self._catalog_objects = parcels, catalogs
         self._updating = True
         try:
             self.project_name.setText(doc.Label if doc else "Sin documento activo")
             self.parcels.clear()
-            for obj in objects:
-                self.parcels.addItem(obj.Label)
-            if current is not None:
-                for i, obj in enumerate(objects):
-                    if obj.Name == current.Name:
+            for o in parcels:
+                self.parcels.addItem(o.Label)
+            self.catalogs.clear()
+            for o in catalogs:
+                self.catalogs.addItem(o.Label)
+            if selected_parcel:
+                for i, o in enumerate(parcels):
+                    if o.Name == selected_parcel.Name:
                         self.parcels.setCurrentRow(i)
+                        break
+            if selected_catalog:
+                for i, o in enumerate(catalogs):
+                    if o.Name == selected_catalog.Name:
+                        self.catalogs.setCurrentRow(i)
                         break
         finally:
             self._updating = False
@@ -126,37 +166,40 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         self.ha_value.setText("—")
         self.perimeter_value.setText("—")
         self.points.setRowCount(0)
-        if current is None:
-            self.note.setText(
-                "Selecciona una parcela para ver sus mediciones."
-                if objects else
-                "Aún no hay parcelas. Usa Importar Sight o Crear parcela."
-            )
+        if selected_parcel:
+            try:
+                original = _points(selected_parcel)
+                stats = measure(original)
+                self.area_value.setText("{:,.3f} m²".format(stats["area_m2"]))
+                self.ha_value.setText("{:,.5f} ha".format(stats["area_ha"]))
+                self.perimeter_value.setText(
+                    "{:,.3f} m".format(stats["perimeter_m"]))
+                self._show_points([(p.name, p.x, p.y, p.z) for p in original])
+                self.note.setText(
+                    "Parcela {}. Confirma unidades y CRS antes de entregar planos."
+                    .format(selected_parcel.Label))
+            except (ValueError, TypeError, KeyError) as exc:
+                self.note.setText("Error al mostrar parcela: {}".format(exc))
             return
-        try:
-            points = _points(current)
-            stats = measure(points)
-        except (ValueError, TypeError, KeyError) as exc:
-            self.note.setText("No se puede medir esta parcela: {}".format(exc))
+        if selected_catalog:
+            try:
+                rows = json.loads(selected_catalog.PuntosJSON)
+                self._show_points([
+                    (p["nombre"], p["este"], p["norte"], p["cota"])
+                    for p in rows
+                ])
+                self.note.setText(
+                    "Mostrando {} de {} puntos de {}. Tabla de consulta, "
+                    "sin edición todavía.".format(
+                        min(250, len(rows)), len(rows), selected_catalog.Label))
+            except (ValueError, TypeError, KeyError) as exc:
+                self.note.setText("Error al mostrar puntos: {}".format(exc))
             return
-        self.area_value.setText("{:,.3f} m²".format(stats["area_m2"]))
-        self.ha_value.setText("{:,.5f} ha".format(stats["area_ha"]))
-        self.perimeter_value.setText("{:,.3f} m".format(stats["perimeter_m"]))
-        self.points.setRowCount(len(points))
-        for i, point in enumerate(points):
-            values = (
-                point.name,
-                "{:.3f}".format(point.x),
-                "{:.3f}".format(point.y),
-                "{:.3f}".format(point.z),
-            )
-            for j, value in enumerate(values):
-                self.points.setItem(i, j, QtWidgets.QTableWidgetItem(value))
         self.note.setText(
-            "Vista informativa de la parcela seleccionada. "
-            "Confirma unidades, coordenadas y sistema de referencia."
+            "Selecciona una parcela o un levantamiento para ver sus datos."
+            if parcels or catalogs else
+            "Sin datos. Usa Importar Sight o Crear parcela."
         )
-
 
 class _SelectionObserver:
     def addSelection(self, *args):

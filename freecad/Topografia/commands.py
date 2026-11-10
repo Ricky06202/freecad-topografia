@@ -145,7 +145,7 @@ class CreateParcel:
         return {
             "Pixmap": icon_path("crear-parcela"),
             "MenuText": "Crear parcela",
-            "ToolTip": "Crear parcela\\nDibujar un polígono cerrado desde puntos",
+            "ToolTip": "Crear parcela\nDibujar un polígono cerrado desde puntos",
             "StatusTip": "Crear una parcela cerrada a partir de una tabla o CSV",
         }
 
@@ -175,7 +175,7 @@ class MeasureParcel:
         return {
             "Pixmap": icon_path("medir-parcela"),
             "MenuText": "Medir parcela",
-            "ToolTip": "Medir parcela\\nÁrea, hectáreas y perímetro horizontal",
+            "ToolTip": "Medir parcela\nÁrea, hectáreas y perímetro horizontal",
             "StatusTip": "Consultar mediciones de la parcela seleccionada",
         }
 
@@ -204,7 +204,7 @@ class ExportPlan:
         return {
             "Pixmap": icon_path("exportar-plano"),
             "MenuText": "Exportar plano SVG",
-            "ToolTip": "Exportar plano\\nGuardar lámina vectorial SVG",
+            "ToolTip": "Exportar plano\nGuardar lámina vectorial SVG",
             "StatusTip": "Exportar una lámina SVG con vértices y medidas",
         }
 
