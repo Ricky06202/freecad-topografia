@@ -2,11 +2,15 @@
 
 Banco de trabajo (Workbench) para dibujar parcelas con coordenadas y consultar área, perímetro y hectáreas. Interfaz en español; proyecto piloto para uso personal.
 
-> Estado: prototipo 0.5. El usuario confirmó que la versión previa arrancó y funcionó en FreeCAD. **Las herramientas nuevas de 0.5 todavía requieren prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+> Estado: prototipo 0.6. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **El rediseño de selección y la entrada por tramos de 0.6 todavía requieren prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
 
-## Funciones implementadas (0.5; nuevas funciones por validar en FreeCAD)
+## Funciones implementadas (0.6; cambios nuevos pendientes de prueba en FreeCAD)
 
-- **Puntos por clic (0.5):** activa **Puntos por clic** para colocar estaciones en la vista superior; usa clic izquierdo para añadir y clic derecho o Escape para salir. **Reubicar punto** toma una fila seleccionada y permite indicar su nueva posición mediante un clic. Trabaja en el sistema local XY de FreeCAD; **no corresponde a coordenadas geográficas ni reales sin fijar el origen/CRS**.
+- **Selección nativa (0.6):** el modo normal es **Seleccionar**. Clic en un vértice del dibujo, Ctrl+clic para añadir otros; las operaciones Editar, Eliminar, Conectar y Reubicar toman esta selección directamente del visor FreeCAD. Se conserva el orden de selección de vértices para conectar una parcela. La selección puede ser de varios puntos del mismo levantamiento, no de varios catálogos.
+- **Tabla completa y cómoda (0.6):** panel lateral con pestañas **Puntos** y **Mediciones**; QTableView muestra **todas** las estaciones y permite desplazarse, sin cortar después de 250. Los puntos que seleccionas en el dibujo quedan resaltados en la tabla. No necesitas usar la tabla para ejecutar acciones.
+- **Introducción por tramos (0.6):** alternativa a colocar puntos o escribir Este/Norte. Introduce primero una estación inicial (Este, Norte, Cota); después cada tramo por **rumbo cuadrantal** (por ejemplo `N 45 E` o `S 30 O`) o **azimut** (0–360°), **distancia horizontal** y **desnivel**. La vista previa calcula el siguiente Este/Norte/Cota. Puedes pulsar **Añadir y continuar** tantas veces como desees. Los puntos resultantes son normales y editables. No se aplica convergencia de meridianos ni declinación magnética.
+
+- **Puntos por clic (0.5):** activa **Puntos por clic** para colocar estaciones en la vista superior; usa clic izquierdo para añadir y clic derecho o Escape para salir. **Reubicar punto** toma un vértice seleccionado en el dibujo y permite indicar su nueva posición mediante un clic. Trabaja en el sistema local XY de FreeCAD; **no corresponde a coordenadas geográficas ni reales sin fijar el origen/CRS**.
 - **Topografía 2D (0.5):** azimuts planos 0°=N, rumbos cuadrantales, distancias horizontales e inclinadas, desniveles, pendientes y ángulos interiores. La tabla de tramos del explorador muestra distancias, rumbos, azimuts y ángulos; la lámina SVG/PDF rotula rumbos.
 - **Rótulos del plano (0.5):** acción **Etiquetar parcela** crea textos Draft con IDs, rumbos y distancias directamente en FreeCAD (hasta 150 vértices por parcela). Se regeneran cuando cambia una estación de la parcela vinculada.
 - **Subdivisión básica (0.5):** dos lotes calculados desde un polígono **convexo** rectilíneo por un porcentaje de superficie (1–99 %) y una línea paralela a Este o Norte; valida conservación de área. Los lotes derivados son **copias independientes**: si se cambia la parcela original, se debe subdividir otra vez.
@@ -14,7 +18,7 @@ Banco de trabajo (Workbench) para dibujar parcelas con coordenadas y consultar �
 - **Perfil longitudinal (0.5):** SVG con abscisa acumulada y cotas desde un recorrido de puntos seleccionados o desde el orden completo de la tabla. Escalas horizontal y vertical automáticas e independientes (esquemático).
 - **Corte y relleno preliminares (0.5):** compara dos levantamientos con los mismos identificadores de estación y las mismas coordenadas planas Este/Norte; integra las diferencias lineales sobre un TIN compartido y muestra relleno, corte y balance neto en m³. **No acepta** conjuntos con coordenadas distintas; no modela breaklines ni superficies extrapoladas.
 - **Escala de plano (0.5):** selector de escala 1:100, 1:200, 1:250, 1:500, 1:750, 1:1000, 1:2000, 1:5000 o ajuste esquemático. Se calculan dimensiones físicas en A4 horizontal; el exportador **rechaza** escalas que no caben. Imprimir PDF al **100 %**, sin ajuste de página, y comprobar con regla antes de usar.
-- **Puntos individuales (0.4):** botones con iconos para añadir un punto (Este, Norte, Cota, descripción), editar o eliminar la fila seleccionada, y conectar filas en orden para cerrar una parcela. Las parcelas creadas de esta forma se vinculan al catálogo: al editar un punto se recalculan, y se bloquea el borrado de un punto que la parcela necesite. Compatible con el flujo existente de archivos Sight.
+- **Puntos individuales (0.4):** botones con iconos para añadir un punto (Este, Norte, Cota, descripción), editar o eliminar vértices elegidos en el dibujo, y conectar puntos en el **orden de Ctrl+clic** para cerrar una parcela. Las parcelas creadas de esta forma se vinculan al catálogo: al editar un punto se recalculan, y se bloquea el borrado de un punto que la parcela necesite. Compatible con el flujo existente de archivos Sight.
 - **Planos con cajetín (0.4):** acción **Generar plano** con título del proyecto, autor («Ing. Ricardo» como valor editable, confirmar antes de usar), fecha y sistema de referencia. PDF vectorial con páginas adicionales para cuadros de coordenadas largos; SVG A4 esquemático; DXF CAD en metros con puntos, parcela, textos y cuadro completo; DWG mediante conversor externo configurado en FreeCAD (ODA, LibreDWG, QCAD). No se incluye firma profesional ni certificación de escala.
 - **Interfaz 0.3:** barra de Topografía con cinco iconos SVG (Importar Sight, Crear parcela, Medir parcela, Exportar SVG y Mostrar/Ocultar explorador), descripción al pasar el cursor y ayuda en la barra de estado.
 - **Explorador lateral:** lista de parcelas y levantamientos importados, métricas de la parcela seleccionada y coordenadas de consulta. Se abre al activar Topografía y se oculta al cambiar a otro banco de trabajo.
@@ -28,7 +32,7 @@ Banco de trabajo (Workbench) para dibujar parcelas con coordenadas y consultar �
 
 ## Instalar paso a paso
 
-1. Instala FreeCAD 1.0 o posterior. El usuario confirmó que el complemento 0.2 funcionó en su equipo; **el nuevo diseño 0.3 todavía no se ha probado en FreeCAD**.
+1. Instala FreeCAD 1.0 o posterior. El usuario confirmó funcionamiento de una versión anterior; **la selección visual y los tramos de 0.6 todavía no se han probado en FreeCAD**.
 2. Abre FreeCAD. Activa **Ver → Paneles → Consola de Python** (View → Panels → Python console).
 3. Escribe en esa consola: `import os; print(os.path.join(App.getUserAppDataDir(), 'Mod'))` y pulsa Enter. Esa es la carpeta de complementos **de tu instalación**. Créala si aún no existe. La ubicación puede variar según FreeCAD, Flatpak, Snap o versión.
 4. Abre el repositorio privado en GitHub: https://github.com/Ricky06202/freecad-topografia. Pulsa **Code → Download ZIP** (inicia sesión con permisos). Descomprime el ZIP.
@@ -56,23 +60,34 @@ P4,500000,900005,0
 
 También se admiten `P1;500000;900000;0`, `500000,900000` o `500000 900000 0`. Usa punto como separador decimal y evita separadores de miles.
 
-## Nuevo panel e iconos en 0.3
+## Selección y tabla de estaciones (0.6)
 
-Los comandos de la barra **Topografía** aparecen como **iconos sin texto**. Pasa el cursor sobre cada icono para conocer su función; la barra de estado también presenta una descripción. Los comandos siguen disponibles con nombre en el menú Topografía.
+Al activar **Topografía**, FreeCAD queda en modo normal de selección. La primera acción de la barra **Puntos** es el cursor **Seleccionar**; úsalo si estabas dibujando puntos y quieres volver al modo de seleccionar.
 
-El último icono abre u oculta el explorador lateral. En él puedes seleccionar parcelas, revisar áreas, perímetros y hectáreas, y consultar las coordenadas de los vértices. También se pueden consultar los puntos de levantamientos importados que todavía no forman una parcela (hasta 250 filas visibles a la vez, sin borrar las demás).
+- Haz clic **sobre el punto visible** (no sobre una fila). Mantén **Ctrl** y haz clic en otros vértices para añadirlos. La línea de estado del panel indica el orden de selección y la pestaña **Puntos** muestra todo el catálogo sin límite de 250 filas.
+- **Editar** requiere un punto seleccionado; **Eliminar** admite uno o varios, con confirmación y protección de parcelas vinculadas; **Conectar** necesita tres o más y usa el **orden en que los seleccionaste**, no el orden alfabético.
+- El panel incluye una pestaña **Mediciones** con rumbos, azimuts, ángulos, área y perímetro. No compite por el espacio vertical con la tabla de coordenadas.
+- La tabla sigue siendo de solo lectura directa, pero **no es obligatoria para ninguna de estas acciones**. No se trabaja en modo especial para seleccionar: es la selección normal de FreeCAD. Si no se distinguen bien los puntos, ajusta el zoom o vuelve a vista superior.
 
-**La tabla es informativa, no editable directamente por doble clic** en esta versión. Los cambios se hacen mediante las herramientas «Editar punto» y «Eliminar punto» (versión 0.4). Las acciones de crear, importar, medir y exportar mantienen sus flujos existentes.
+## Entrada por tramos (0.6)
 
-Para actualizar desde 0.2, cierra FreeCAD, conserva una copia de tus documentos `.FCStd`, reemplaza los archivos del complemento o ejecuta `git pull` y vuelve a iniciar FreeCAD. El primer arranque de la interfaz 0.3 aún está pendiente de validación.
+1. Haz clic en **Introducir tramos** (icono de poligonal con signo +). Si todavía no hay levantamiento, escribe el primer punto con sus coordenadas **Este, Norte y Cota**.
+2. En el cuadro siguiente indica el **nombre del punto nuevo**, **rumbo** (`N 45 E`, `S 30 O`, `N 12:30 W`) **o azimut** (por ejemplo `90`), la **distancia horizontal en metros**, y un **desnivel** positivo/negativo (opcional).
+3. El panel muestra una **vista previa** del Este, Norte y Cota calculados. Pulsa **Añadir y continuar** para encadenar el siguiente tramo, o **Añadir tramo** para finalizar.
+4. También puedes elegir un vértice del dibujo y abrir **Introducir tramos** para comenzar desde ese punto; si no seleccionas uno, parte de la última estación del levantamiento elegido.
+5. Cuando tengas tres o más estaciones, vuelve a **Seleccionar**, marca los vértices del terreno con clic y Ctrl+clic, y pulsa **Conectar puntos**.
 
-[Decisiones de diseño y plan de pruebas](docs/UX_UI.md).
+**Ejemplo de rectángulo:** parte de P1 (Este 500000, Norte 900000, Cota 0) y añade rumbo `N90E` a 10 m, luego `N0E` a 5 m y `S90O` a 10 m. Selecciona los cuatro vértices creados y ciérralos con **Conectar puntos**: el área debe ser 50 m² y el perímetro 30 m. **No agregues un quinto punto en la misma coordenada que P1:** la herramienta Conectar cierra el polígono automáticamente.
+
+Las distancias de tramos son **horizontales**; una distancia inclinada necesita reducción horizontal previa. Los rumbos se interpretan como cuadrantales planos y los azimuts se miden en sentido horario desde el norte de la cuadrícula. Verifica convenciones, declinación, unidades y sistema de referencia de la libreta de campo antes de emplear mediciones profesionales.
+
+[Diseño y pruebas de UX](docs/UX_UI.md).
 
 ## Flujo de puntos y planos (0.4–0.5)
 
 1. Entra en **Topografía** y pulsa el icono **Añadir punto**. Completa nombre, **Este (X)**, **Norte (Y)**, Cota y descripción; guarda. La primera estación crea el levantamiento manual.
-2. Para editar o eliminar, selecciona el **levantamiento** en el explorador lateral y una **fila** de la tabla; usa los iconos lápiz o papelera. Se confirma el borrado. No se puede eliminar un punto que pertenezca a una parcela vinculada sin antes cambiar esa parcela.
-3. Para conectar, marca **tres o más filas** con selección múltiple en el orden en el que aparecen en la tabla. Pulsa **Conectar puntos**. Si no hay selección, se ofrece conectar todos los puntos en orden de tabla (hasta 250 visibles). Comprueba que el orden no cruce los lados.
+2. Para editar o eliminar, selecciona **uno o varios vértices en el dibujo** (Ctrl+clic para selección múltiple) y utiliza los iconos lápiz o papelera. Editar admite uno; eliminar admite varios y exige confirmación. No se puede eliminar un punto que pertenezca a una parcela vinculada sin antes cambiar esa parcela.
+3. Para conectar, marca **tres o más puntos directamente en el dibujo** con clic y Ctrl+clic. Pulsa **Conectar puntos**. Se respeta el orden de clics. Sin selección aparece una instrucción: ya no se conecta todo por sorpresa.
 4. Selecciona la parcela. Pulsa **Generar plano**, confirma título, nombre del profesional responsable, fecha y CRS, y elige el formato. La tabla de puntos y las mediciones se generan desde los valores del proyecto.
 5. **PDF:** hoja A4 horizontal con plano esquemático, mediciones y cajetín; si hay más de diez puntos, incluye páginas anexas con la tabla completa. **DXF:** geometría CAD editable en metros con puntos y textos; **DWG:** conversión externa, necesita ODA/LibreDWG/QCAD configurado en las preferencias de FreeCAD. En ausencia de conversor, usa DXF.
 
@@ -82,8 +97,8 @@ Para actualizar desde 0.2, cierra FreeCAD, conserva una copia de tus documentos 
 
 ## Flujo nuevo de trabajo 0.5
 
-1. **Trazar en 2D:** selecciona «Puntos por clic»; el banco cambia a vista superior. Clic izquierdo crea puntos, clic derecho o Escape termina. Introduce Este y Norte exactos luego en la tabla. Para **Reubicar**, selecciona una estación en la tabla, pulsa el icono y marca el destino con un clic.
-2. **Dibujar y medir:** selecciona las filas del levantamiento y usa «Conectar puntos». En el panel aparecerán superficie, perímetro, rumbos, azimuts y ángulos. Para ver los nombres y distancias en el visor, pulsa «Etiquetar parcela». Si son muchos puntos, reduce los rótulos o utiliza el plano PDF.
+1. **Trazar en 2D:** selecciona «Puntos por clic»; en vista superior, clic izquierdo crea puntos, clic derecho o Escape termina. Las coordenadas exactas se corrigen con **Editar**. También puedes utilizar **Introducir tramos** (rumbo/azimut y distancia). Para **Reubicar**, selecciona el vértice **en el dibujo**, pulsa el icono y marca el destino.
+2. **Dibujar y medir:** vuelve a **Seleccionar**, pulsa Ctrl+clic sobre los vértices deseados y usa «Conectar puntos». En el panel aparecerán superficie, perímetro, rumbos, azimuts y ángulos. Para ver los nombres y distancias en el visor, pulsa «Etiquetar parcela». Si son muchos puntos, reduce los rótulos o utiliza el plano PDF.
 3. **Subdividir:** selecciona la parcela y pulsa «Subdividir por porcentaje». Indica el porcentaje del lote A y el eje del corte. Solo admite parcelas **convexas con segmentos rectos**, y deja el original oculto sin borrarlo.
 4. **Terreno:** selecciona un levantamiento con cotas distintas. «Superficie TIN» crea una malla 3D; «Curvas de nivel» solicita equidistancia (en m). El TIN es preliminar, sin breaklines, y tiene límite de 400 puntos.
 5. **Perfil:** selecciona el levantamiento con cotas y pulsa «Perfil longitudinal». Puedes elegir puntos de la tabla para el recorrido, o aceptar el orden de todas las estaciones. El perfil SVG indica distancias acumuladas; la exageración vertical no es una escala topográfica calibrada.
