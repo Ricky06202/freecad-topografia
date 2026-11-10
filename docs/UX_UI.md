@@ -1,4 +1,7 @@
-# Diseño de interfaz — Topografía 0.3
+# Diseño de interfaz — Topografía 0.6
+
+> Las secciones 0.3–0.5 conservan el historial de decisiones; la **sección 0.6** describe el comportamiento vigente. Ya no es obligatorio seleccionar filas de la tabla ni existe el límite visual de 250 puntos.
+
 
 ## Decisión
 
@@ -83,3 +86,27 @@ La acción **Generar plano** abre un formulario editable de título, elaborado p
 **Pruebas pendientes en GUI:** el usuario confirmó una versión anterior, pero no hay FreeCAD en el runner de GitHub. Comprobar el modo clic, la selección de filas, rótulos Draft tras edición, las cuatro barras, TIN sobre cotas reales, subdivisión, reporte perfil, cubicación con dos conjuntos de igual XY y PDF impreso. La entrega oficial está prohibida sin validación técnica.
 
 **Pruebas sintéticas del núcleo:** tests de geometría, ángulos, TIN, curvas, conservación de áreas, perfil, cubicación uniforme/mix de corte-relleno y relación 1:500 en SVG. No se versionan muestras privadas.
+
+## Decisión 0.6 — selección nativa y tramos
+
+**Problema comprobado por el usuario:** el flujo anterior obligaba a seleccionar filas de la tabla para conectar, editar o borrar puntos y la tabla parecía mostrar solo un punto. Esto perjudicaba el uso real del complemento.
+
+**Nuevo principio UX:** el área de dibujo es el centro de interacción, la tabla informa y permite revisar los datos.
+
+- **Seleccionar** es el modo predeterminado del banco Topografía y tiene icono propio; no instala un manejador personalizado cuando el usuario solo quiere seleccionar. Un clic sobre un vértice del catálogo `Part::Feature` corresponde a un subelemento `VertexN`. **Ctrl+clic** agrega otros; el complemento guarda el orden de los clics con un observador de selección de FreeCAD.
+- **Editar** toma un vértice; **Eliminar** admite múltiples con confirmación y protección de vértices vinculados; **Conectar** consume tres o más vértices en el **orden de selección**, sin unir automáticamente todos los puntos del catálogo.
+- **Puntos en tabla** utiliza un modelo `QAbstractTableModel` y un `QTableView`: se consultan todos los puntos mediante scroll, sin poblar decenas de miles de celdas en memoria ni recortar a 250. Dos pestañas **Puntos** y **Mediciones** dan prioridad de altura al cuadro de coordenadas. La tabla señala visualmente qué puntos están seleccionados en el dibujo.
+- **Introducir tramos** es un método alternativo, no una obligación: solicita primer Este/Norte/Cota cuando no hay catálogo, o parte del último punto (o del seleccionado con el ratón). Un nuevo punto se deriva de rumbo cuadrantal N/S–E/O o azimut 0–360°, distancia **horizontal** en metros y desnivel en metros. El formulario previsualiza Este, Norte, Cota y azimut equivalente y tiene acciones **Añadir tramo**, **Añadir y continuar** y **Cancelar**.
+- El cuadro de tramos y el plano miden con las coordenadas calculadas; el usuario puede corregirlas mediante **Editar punto**. Las unidades son metros y no se infieren datos geodésicos; el CRS, la declinación magnética y las convenciones de libreta deben declararse y comprobarse externamente.
+
+### Pruebas manuales de aceptación 0.6
+
+1. Nuevo documento: iniciar **Introducir tramos**, P1 = E 500000 / N 900000 / Z 0, después N90E 10 m, N0E 5 m y S90O 10 m. Deben aparecer P1…P4 y la tabla debe mostrar las cuatro filas simultáneamente, con scroll disponible.
+2. Con el cursor **Seleccionar**, marcar **P1, P2, P3, P4** en orden con Ctrl+clic. La etiqueta del panel debe mostrar ese orden y **Conectar** debe crear un rectángulo de **50 m² y perímetro 30 m**.
+3. Seleccionar **P2** en el dibujo, usar **Editar**, cambiar Norte y verificar actualización del catálogo y la parcela vinculada. Usar Deshacer en FreeCAD.
+4. Intentar **Eliminar** un vértice usado por una parcela: debe bloquearlo. Seleccionar dos vértices auxiliares no usados y comprobar eliminación con confirmación y un único deshacer.
+5. Importar un catálogo Sight con cientos de puntos; comprobar scroll y que la selección del visor se refleje en la fila correcta sin reducir el número de filas.
+6. Guardar y reabrir el documento `.FCStd`, verificar los datos de tramos y selecciones nuevas (la selección transitoria puede restablecerse, pero no las coordenadas).
+7. Con varias parcelas y catálogos, probar selección mezclada: no se deben conectar puntos de catálogos incompatibles sin aviso.
+
+**Límites pendientes:** no se ha probado la GUI de 0.6 dentro de FreeCAD. El reconocimiento nativo de subelementos `VertexN` debe confirmarse en la versión instalada del usuario y con proyectos importados. No hay herramientas catastrales certificadas ni transformación CRS implícita.
