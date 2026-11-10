@@ -101,7 +101,11 @@ def write_catalog(doc, obj, rows, removed_index=None):
     if obj.Document != doc:
         raise ValueError("Catálogo de otro documento")
     if not rows:
-        raise ValueError("No puedes eliminar el último punto del catálogo")
+        if linked_parcels(doc, obj):
+            raise ValueError("El levantamiento tiene parcelas vinculadas")
+        doc.removeObject(obj.Name)
+        doc.recompute()
+        return
     project = ensure_project(doc, Point(
         str(rows[0]["nombre"]), float(rows[0]["este"]),
         float(rows[0]["norte"]), float(rows[0].get("cota", 0.0))
