@@ -75,3 +75,55 @@ def create_svg(points, label="Parcela", metadata=None):
         '</svg>',
     ])
     return "\n".join(rows) + "\n"
+
+
+
+def coordinate_annex_pages(points, label="Parcela", metadata=None):
+    """Páginas A4 adicionales con todas las coordenadas no visibles en portada.
+
+    La portada lista los primeros diez puntos. Esta función continúa la tabla
+    completa sin recortar estaciones; diseñada para añadir páginas al PDF.
+    """
+    metadata = metadata or {}
+    remaining = list(points[10:])
+    pages = []
+    for offset in range(0, len(remaining), 26):
+        segment = remaining[offset:offset + 26]
+        lines = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<svg xmlns="http://www.w3.org/2000/svg" width="297mm" height="210mm" viewBox="0 0 1122 794">',
+            '<rect width="1122" height="794" fill="white"/>',
+            '<rect x="25" y="25" width="1072" height="742" fill="none" stroke="#345" stroke-width="2"/>',
+            '<text x="65" y="75" font-family="sans-serif" font-size="27" font-weight="bold">ANEXO — CUADRO DE COORDENADAS</text>',
+            '<text x="65" y="107" font-family="sans-serif" font-size="17">{}</text>'.format(
+                escape(str(metadata.get("titulo") or label))
+            ),
+            '<text x="65" y="139" font-family="sans-serif" font-size="14">PUNTO</text>',
+            '<text x="285" y="139" font-family="sans-serif" font-size="14">ESTE (m)</text>',
+            '<text x="535" y="139" font-family="sans-serif" font-size="14">NORTE (m)</text>',
+            '<text x="795" y="139" font-family="sans-serif" font-size="14">COTA (m)</text>',
+            '<line x1="65" y1="149" x2="1055" y2="149" stroke="#456"/>',
+        ]
+        for row, point in enumerate(segment):
+            y = 171 + row * 20
+            if row % 2 == 0:
+                lines.append(
+                    '<rect x="65" y="{}" width="990" height="20" fill="#f2f7f6"/>'.format(y - 15)
+                )
+            lines += [
+                '<text x="65" y="{}" font-family="sans-serif" font-size="13">{}</text>'.format(
+                    y, escape(point.name)),
+                '<text x="285" y="{}" font-family="sans-serif" font-size="13">{:.3f}</text>'.format(y, point.x),
+                '<text x="535" y="{}" font-family="sans-serif" font-size="13">{:.3f}</text>'.format(y, point.y),
+                '<text x="795" y="{}" font-family="sans-serif" font-size="13">{:.3f}</text>'.format(y, point.z),
+            ]
+        lines += [
+            '<line x1="65" y1="718" x2="1055" y2="718" stroke="#456"/>',
+            '<text x="65" y="747" font-family="sans-serif" font-size="13">Elaborado por: {}</text>'.format(
+                escape(str(metadata.get("autor") or "Sin especificar"))),
+            '<text x="650" y="747" font-family="sans-serif" font-size="13">Hoja anexa {}</text>'.format(
+                1 + offset // 26),
+            '</svg>',
+        ]
+        pages.append("\n".join(lines) + "\n")
+    return pages
