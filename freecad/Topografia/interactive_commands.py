@@ -52,8 +52,8 @@ class _PointPicker:
             if mode == "move":
                 if self.catalog is None or len(selection) != 1:
                     raise ValueError(
-                        "Para mover, selecciona un levantamiento y una fila "
-                        "en la tabla de puntos del panel."
+                        "Para mover, selecciona un vértice directamente sobre el dibujo "
+                        "y después pulsa Reubicar."
                     )
                 self.index = selection[0]
         except Exception:
@@ -195,7 +195,7 @@ class MovePoint:
         return {
             "Pixmap": icon_path("mover-punto"),
             "MenuText": "Reubicar punto por clic",
-            "ToolTip": "Mover punto\nElegir punto de la tabla y su nueva posición en el plano",
+            "ToolTip": "Mover punto\nSelecciona un vértice en el dibujo y marca su nueva posición",
             "StatusTip": "Seleccionar un punto y luego señalar su nueva ubicación",
         }
 

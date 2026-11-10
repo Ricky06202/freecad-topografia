@@ -160,7 +160,7 @@ class DeletePoint:
     def GetResources(self):
         return {
             "Pixmap": icon_path("eliminar-punto"), "MenuText": "Eliminar puntos",
-            "ToolTip": "Eliminar puntos\\nQuitar uno o varios vértices seleccionados",
+            "ToolTip": "Eliminar puntos\nQuitar uno o varios vértices seleccionados",
             "StatusTip": "Borrar los puntos seleccionados en el plano (con confirmación)",
         }
 
