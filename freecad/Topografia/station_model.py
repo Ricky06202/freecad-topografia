@@ -46,7 +46,12 @@ def edit_station(rows, index, item):
     if not 0 <= index < len(result):
         raise IndexError("Punto fuera de rango")
     _uniqueness(result, index, item)
-    result[index] = dict(item)
+    replacement = dict(item)
+    # La línea de origen Sight forma parte de la procedencia y no se edita
+    # en el formulario. Conservarla al cambiar las coordenadas del punto.
+    if not replacement.get("line") and result[index].get("line"):
+        replacement["line"] = result[index]["line"]
+    result[index] = replacement
     return result
 
 
