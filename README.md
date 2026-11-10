@@ -10,7 +10,9 @@ Banco de trabajo (Workbench) para dibujar parcelas con coordenadas y consultar �
 - **Topografía 2D (0.5):** azimuts planos 0°=N, rumbos cuadrantales, distancias horizontales e inclinadas, desniveles, pendientes y ángulos interiores. La tabla de tramos del explorador muestra distancias, rumbos, azimuts y ángulos; la lámina SVG/PDF rotula rumbos.
 - **Rótulos del plano (0.5):** acción **Etiquetar parcela** crea textos Draft con IDs, rumbos y distancias directamente en FreeCAD (hasta 150 vértices por parcela). Se regeneran cuando cambia una estación de la parcela vinculada.
 - **Subdivisión básica (0.5):** dos lotes calculados desde un polígono **convexo** rectilíneo por un porcentaje de superficie (1–99 %) y una línea paralela a Este o Norte; valida conservación de área. Los lotes derivados son **copias independientes**: si se cambia la parcela original, se debe subdividir otra vez.
-- **Terreno preliminar (0.5):** superficie TIN triangulada y curvas de nivel interpoladas con equidistancia seleccionable; hasta 400 estaciones por cálculo. No modela líneas de quiebre, exclusiones, zonas sin datos, ni realiza cálculos certificados de volumen.
+- **Terreno preliminar (0.5):** superficie TIN triangulada y curvas de nivel interpoladas con equidistancia seleccionable; hasta 400 estaciones por cálculo. No modela líneas de quiebre ni exclusiones.
+- **Perfil longitudinal (0.5):** SVG con abscisa acumulada y cotas desde un recorrido de puntos seleccionados o desde el orden completo de la tabla. Escalas horizontal y vertical automáticas e independientes (esquemático).
+- **Corte y relleno preliminares (0.5):** compara dos levantamientos con los mismos identificadores de estación y las mismas coordenadas planas Este/Norte; integra las diferencias lineales sobre un TIN compartido y muestra relleno, corte y balance neto en m³. **No acepta** conjuntos con coordenadas distintas; no modela breaklines ni superficies extrapoladas.
 - **Escala de plano (0.5):** selector de escala 1:100, 1:200, 1:250, 1:500, 1:750, 1:1000, 1:2000, 1:5000 o ajuste esquemático. Se calculan dimensiones físicas en A4 horizontal; el exportador **rechaza** escalas que no caben. Imprimir PDF al **100 %**, sin ajuste de página, y comprobar con regla antes de usar.
 - **Puntos individuales (0.4):** botones con iconos para añadir un punto (Este, Norte, Cota, descripción), editar o eliminar la fila seleccionada, y conectar filas en orden para cerrar una parcela. Las parcelas creadas de esta forma se vinculan al catálogo: al editar un punto se recalculan, y se bloquea el borrado de un punto que la parcela necesite. Compatible con el flujo existente de archivos Sight.
 - **Planos con cajetín (0.4):** acción **Generar plano** con título del proyecto, autor («Ing. Ricardo» como valor editable, confirmar antes de usar), fecha y sistema de referencia. PDF vectorial con páginas adicionales para cuadros de coordenadas largos; SVG A4 esquemático; DXF CAD en metros con puntos, parcela, textos y cuadro completo; DWG mediante conversor externo configurado en FreeCAD (ODA, LibreDWG, QCAD). No se incluye firma profesional ni certificación de escala.
@@ -76,7 +78,7 @@ Para actualizar desde 0.2, cierra FreeCAD, conserva una copia de tus documentos 
 
 **Importante:** la exportación incluye escalas físicas seleccionables en 0.5, calculadas para A4, pero deben comprobarse tras imprimir al 100 %. El modo automático sigue siendo esquemático. Una escala correcta no convierte el dibujo en plano catastral certificado ni valida un CRS desconocido. El cuadro de autor es texto editable y no implica firma ni validación profesional. El nombre «Ing. Ricardo» es una propuesta basada en el ejemplo indicado por el usuario, no una identidad verificada.
 
-**Limitaciones:** no se ha implementado arrastre continuo de vértices ni la edición del orden por «subir/bajar»; **Reubicar punto** cambia la posición con un clic y se puede corregir numéricamente. Los arcos, la subdivisión de polígonos cóncavos, breaklines para el TIN y la transformación de CRS siguen pendientes. No se ha probado el flujo 0.5 dentro de FreeCAD en este entorno.
+**Limitaciones:** no se ha implementado arrastre continuo de vértices ni la edición del orden por «subir/bajar»; **Reubicar punto** cambia la posición con un clic y se puede corregir numéricamente. Los arcos, la subdivisión de polígonos cóncavos, breaklines para el TIN, perfiles a escala y la transformación de CRS siguen pendientes. Corte/relleno solo funciona con mallas compatibles de igual planimetría; no estima material fuera de la nube. No se ha probado el flujo 0.5 dentro de FreeCAD en este entorno.
 
 ## Flujo nuevo de trabajo 0.5
 
@@ -84,7 +86,9 @@ Para actualizar desde 0.2, cierra FreeCAD, conserva una copia de tus documentos 
 2. **Dibujar y medir:** selecciona las filas del levantamiento y usa «Conectar puntos». En el panel aparecerán superficie, perímetro, rumbos, azimuts y ángulos. Para ver los nombres y distancias en el visor, pulsa «Etiquetar parcela». Si son muchos puntos, reduce los rótulos o utiliza el plano PDF.
 3. **Subdividir:** selecciona la parcela y pulsa «Subdividir por porcentaje». Indica el porcentaje del lote A y el eje del corte. Solo admite parcelas **convexas con segmentos rectos**, y deja el original oculto sin borrarlo.
 4. **Terreno:** selecciona un levantamiento con cotas distintas. «Superficie TIN» crea una malla 3D; «Curvas de nivel» solicita equidistancia (en m). El TIN es preliminar, sin breaklines, y tiene límite de 400 puntos.
-5. **Imprimir a escala:** selecciona una parcela y «Generar plano»; completa título/autor/CRS, escoge PDF y la escala 1:N. Si el dibujo no cabe, el complemento avisará. Revisa el cajetín y mide un lado conocido sobre papel para confirmar la escala física. También puedes exportar DXF o intentar DWG con un conversor configurado.
+5. **Perfil:** selecciona el levantamiento con cotas y pulsa «Perfil longitudinal». Puedes elegir puntos de la tabla para el recorrido, o aceptar el orden de todas las estaciones. El perfil SVG indica distancias acumuladas; la exageración vertical no es una escala topográfica calibrada.
+6. **Movimiento de tierra:** importa o crea dos levantamientos, uno de terreno existente y otro de diseño. Deben tener los **mismos IDs y coordenadas Este/Norte**, con cotas respectivas. Pulsa «Corte y relleno» y selecciona ambos; el resultado indica m³ de relleno, corte y balance. No es una cubicación de obra certificada.
+7. **Imprimir a escala:** selecciona una parcela y «Generar plano»; completa título/autor/CRS, escoge PDF y la escala 1:N. Si el dibujo no cabe, el complemento avisará. Revisa el cajetín y mide un lado conocido sobre papel para confirmar la escala física. También puedes exportar DXF o intentar DWG con un conversor configurado.
 
 **Precaución de instalación:** cierra FreeCAD antes de actualizar. Conserva copias de los documentos `.FCStd` de la versión anterior. Si una herramienta da error, revisa **Ver → Paneles → Vista de informes** y anota el comando y el texto del error.
 
@@ -137,7 +141,7 @@ El alcance, dependencias y pruebas de aceptación están en [docs/ROADMAP.md](do
 ## Próximas versiones
 
 - Edición interactiva de puntos y linderos; etiquetas en el espacio de trabajo; estilos de plano.
-- Validación real de escala/impresora, edición gráfica avanzada, arcos, subdivisión no convexa, breaklines TIN y perfiles del terreno.
+- Validación real de escala/impresora, edición gráfica avanzada, arcos, subdivisión no convexa, breaklines TIN, perfiles a escala y cubicaciones profesionales verificadas.
 - Selección de sistema de referencia (CRS), importación GNSS y, si corresponde, curvas de nivel.
 
 ## Referencias e inspiración
