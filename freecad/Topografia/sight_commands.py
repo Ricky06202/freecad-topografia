@@ -8,6 +8,7 @@ from PySide import QtWidgets
 from .sight import parse_sight, decode_survey_bytes
 from .project import add_catalog
 from .commands import _create_parcel
+from .ui_resources import icon_path
 
 
 def _wide_span(points, limit_m=100000.0):
@@ -134,8 +135,10 @@ class SightPreview(QtWidgets.QDialog):
 class ImportSight:
     def GetResources(self):
         return {
+            "Pixmap": icon_path("importar-sight"),
             "MenuText": "Importar Sight (TXT/ASC)",
-            "ToolTip": "Importar estaciones y parcelas desde reportes Sight Survey",
+            "ToolTip": "Importar Sight\\nLeer archivos de puntos TXT o ASC",
+            "StatusTip": "Importar puntos y parcelas desde informes Sight Survey",
         }
 
     def IsActive(self):

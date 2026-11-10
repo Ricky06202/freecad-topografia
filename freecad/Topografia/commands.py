@@ -9,6 +9,7 @@ from PySide import QtWidgets
 from .geometry import Point, parse_points, measure
 from .svg_report import create_svg
 from .project import ensure_project, position_for
+from .ui_resources import icon_path
 
 EXAMPLE = (
     "Punto,Este,Norte,Cota\n"
@@ -142,8 +143,10 @@ def _create_parcel(points, doc=None, label=None):
 class CreateParcel:
     def GetResources(self):
         return {
+            "Pixmap": icon_path("crear-parcela"),
             "MenuText": "Crear parcela",
-            "ToolTip": "Importar puntos y dibujar un polígono cerrado",
+            "ToolTip": "Crear parcela\\nDibujar un polígono cerrado desde puntos",
+            "StatusTip": "Crear una parcela cerrada a partir de una tabla o CSV",
         }
 
     def IsActive(self):
@@ -170,8 +173,10 @@ class CreateParcel:
 class MeasureParcel:
     def GetResources(self):
         return {
+            "Pixmap": icon_path("medir-parcela"),
             "MenuText": "Medir parcela",
-            "ToolTip": "Consultar área, hectáreas y perímetro",
+            "ToolTip": "Medir parcela\\nÁrea, hectáreas y perímetro horizontal",
+            "StatusTip": "Consultar mediciones de la parcela seleccionada",
         }
 
     def IsActive(self):
@@ -197,8 +202,10 @@ class MeasureParcel:
 class ExportPlan:
     def GetResources(self):
         return {
+            "Pixmap": icon_path("exportar-plano"),
             "MenuText": "Exportar plano SVG",
-            "ToolTip": "Guardar lámina vectorial con vértices y medidas",
+            "ToolTip": "Exportar plano\\nGuardar lámina vectorial SVG",
+            "StatusTip": "Exportar una lámina SVG con vértices y medidas",
         }
 
     def IsActive(self):
