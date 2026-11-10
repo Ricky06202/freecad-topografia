@@ -1,7 +1,8 @@
-"""Panel lateral no modal para consultar parcelas y puntos en FreeCAD.
+"""Explorador topográfico: selección en el visor y tabla completa de coordenadas.
 
-Mantiene la vista central libre. No modifica coordenadas: la edición se
-implementará después, con transacciones y validaciones topográficas.
+El usuario trabaja normalmente sobre los vértices de FreeCAD (Ctrl+clic
+para selección múltiple). La tabla es una vista consultable, no el mecanismo
+obligatorio de selección. La paginación desaparece gracias a QTableView.
 """
 import json
 
@@ -15,6 +16,49 @@ from .commands import _points
 from .ui_resources import icon_path
 
 
+class PointsModel(QtCore.QAbstractTableModel):
+    COLUMNS = ("Punto", "Este (m)", "Norte (m)", "Cota (m)")
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.rows = []
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        return 0 if parent.isValid() else len(self.rows)
+
+    def columnCount(self, parent=QtCore.QModelIndex()):
+        return 0 if parent.isValid() else 4
+
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if not index.isValid() or index.row() >= len(self.rows):
+            return None
+        row = self.rows[index.row()]
+        if role == QtCore.Qt.DisplayRole:
+            if index.column() == 0:
+                return str(row["nombre"])
+            field = ("este", "norte", "cota")[index.column() - 1]
+            return "{:.3f}".format(float(row.get(field, 0.0)))
+        if role == QtCore.Qt.TextAlignmentRole and index.column() > 0:
+            return QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+        if role == QtCore.Qt.ToolTipRole:
+            return "Punto {} · {}".format(
+                row["nombre"], row.get("descripcion", "Coordenadas en metros")
+            )
+        return None
+
+    def headerData(self, section, orientation, role=QtCore.Qt.DisplayRole):
+        if role != QtCore.Qt.DisplayRole:
+            return None
+        if orientation == QtCore.Qt.Horizontal:
+            return self.COLUMNS[section]
+        return str(section + 1)
+
+    def set_rows(self, rows):
+        self.beginResetModel()
+        self.rows = list(rows)
+        self.endResetModel()
+
+
 class ExplorerPanel(QtWidgets.QDockWidget):
     def __init__(self, parent):
         super().__init__("Topografía · Explorador", parent)
@@ -22,51 +66,107 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         self.setAllowedAreas(
             QtCore.Qt.LeftDockWidgetArea | QtCore.Qt.RightDockWidgetArea
         )
-        self.setMinimumWidth(280)
+        self.setMinimumWidth(350)
         self._objects = []
         self._catalog_objects = []
         self._updating = False
+        self._shown_key = None
+
         page = QtWidgets.QWidget(self)
         self.setWidget(page)
-        layout = QtWidgets.QVBoxLayout(page)
-        layout.setContentsMargins(12, 12, 12, 12)
-        layout.setSpacing(9)
-
-        title = QtWidgets.QLabel("PROYECTO")
-        layout.addWidget(title)
+        outer = QtWidgets.QVBoxLayout(page)
+        outer.setContentsMargins(8, 8, 8, 8)
+        outer.setSpacing(5)
         self.project_name = QtWidgets.QLabel("Sin documento activo")
-        self.project_name.setTextFormat(QtCore.Qt.PlainText)
         self.project_name.setWordWrap(True)
-        layout.addWidget(self.project_name)
+        outer.addWidget(self.project_name)
 
-        hint = QtWidgets.QLabel(
-            "Importa puntos o crea una parcela desde los iconos superiores. "
-            "Selecciona una parcela para consultar sus datos."
+        self.help = QtWidgets.QLabel(
+            "Seleccionar es el modo normal: clic en un vértice; "
+            "Ctrl+clic para añadir otros. Las acciones usan esa selección."
         )
-        hint.setWordWrap(True)
-        layout.addWidget(hint)
+        self.help.setWordWrap(True)
+        self.help.setToolTip(
+            "No necesitas marcar filas de la tabla para editar o conectar puntos"
+        )
+        outer.addWidget(self.help)
 
-        layout.addWidget(QtWidgets.QLabel("PARCELAS"))
+        # Encabezados de navegación breves: la tabla recibe el espacio útil.
+        header = QtWidgets.QHBoxLayout()
+        parcels_col = QtWidgets.QVBoxLayout()
+        parcels_col.addWidget(QtWidgets.QLabel("PARCELAS"))
         self.parcels = QtWidgets.QListWidget()
         self.parcels.setObjectName("TopografiaListaParcelas")
-        self.parcels.setMinimumHeight(85)
-        self.parcels.setMaximumHeight(155)
-        self.parcels.setToolTip(
-            "Selecciona una parcela para verla en el modelo y consultar sus medidas"
-        )
+        self.parcels.setMinimumHeight(65)
+        self.parcels.setMaximumHeight(90)
         self.parcels.currentRowChanged.connect(self.select_parcel)
-        layout.addWidget(self.parcels)
-
-        layout.addWidget(QtWidgets.QLabel("LEVANTAMIENTOS"))
+        parcels_col.addWidget(self.parcels)
+        header.addLayout(parcels_col, 1)
+        catalogs_col = QtWidgets.QVBoxLayout()
+        catalogs_col.addWidget(QtWidgets.QLabel("LEVANTAMIENTOS"))
         self.catalogs = QtWidgets.QListWidget()
         self.catalogs.setObjectName("TopografiaListaLevantamientos")
-        self.catalogs.setMaximumHeight(105)
         self.catalogs.setMinimumHeight(65)
-        self.catalogs.setToolTip("Ver puntos importados aunque todavía no exista parcela")
+        self.catalogs.setMaximumHeight(90)
         self.catalogs.currentRowChanged.connect(self.select_catalog)
-        layout.addWidget(self.catalogs)
+        catalogs_col.addWidget(self.catalogs)
+        header.addLayout(catalogs_col, 1)
+        outer.addLayout(header)
 
-        metrics = QtWidgets.QGroupBox("Mediciones horizontales")
+        self.tabs = QtWidgets.QTabWidget()
+        outer.addWidget(self.tabs, 1)
+
+        points_tab = QtWidgets.QWidget()
+        points_layout = QtWidgets.QVBoxLayout(points_tab)
+        points_layout.setContentsMargins(5, 5, 5, 5)
+        self.selection_info = QtWidgets.QLabel(
+            "0 seleccionados · Ctrl+clic añade vértices"
+        )
+        self.selection_info.setWordWrap(True)
+        points_layout.addWidget(self.selection_info)
+
+        self.model = PointsModel(self)
+        self.points = QtWidgets.QTableView()
+        self.points.setObjectName("TopografiaTablaPuntos")
+        self.points.setModel(self.model)
+        self.points.setAlternatingRowColors(True)
+        self.points.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.points.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.points.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.points.setMinimumHeight(220)
+        self.points.verticalHeader().setVisible(False)
+        self.points.horizontalHeader().setStretchLastSection(True)
+        self.points.setToolTip(
+            "Todos los puntos del levantamiento: usa el ratón sobre los "
+            "vértices del dibujo para seleccionar. Aquí puedes consultar datos."
+        )
+        points_layout.addWidget(self.points, 1)
+
+        actions = QtWidgets.QHBoxLayout()
+        for command, icon, hint in (
+            ("Topografia_Seleccionar", "seleccionar", "Seleccionar puntos (modo normal)"),
+            ("Topografia_AgregarPunto", "agregar-punto", "Introducir punto por coordenadas"),
+            ("Topografia_AgregarTramo", "agregar-tramo", "Añadir punto por rumbo y distancia"),
+            ("Topografia_EditarPunto", "editar-punto", "Editar el punto seleccionado"),
+            ("Topografia_EliminarPunto", "eliminar-punto", "Eliminar puntos seleccionados"),
+            ("Topografia_ConectarPuntos", "conectar-puntos", "Crear parcela desde selección"),
+        ):
+            button = QtWidgets.QToolButton()
+            button.setIcon(QtGui.QIcon(icon_path(icon)))
+            button.setIconSize(QtCore.QSize(26, 26))
+            button.setToolTip(hint)
+            button.setAccessibleName(hint)
+            button.clicked.connect(
+                lambda checked=False, cmd=command: Gui.runCommand(cmd)
+            )
+            actions.addWidget(button)
+        actions.addStretch()
+        points_layout.addLayout(actions)
+        self.tabs.addTab(points_tab, "Puntos")
+
+        metrics_tab = QtWidgets.QWidget()
+        metrics_layout = QtWidgets.QVBoxLayout(metrics_tab)
+        metrics = QtWidgets.QGroupBox("Superficie y perímetro")
         grid = QtWidgets.QFormLayout(metrics)
         self.area_value = QtWidgets.QLabel("—")
         self.ha_value = QtWidgets.QLabel("—")
@@ -74,68 +174,35 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         grid.addRow("Área:", self.area_value)
         grid.addRow("Hectáreas:", self.ha_value)
         grid.addRow("Perímetro:", self.perimeter_value)
-        layout.addWidget(metrics)
-        sides_group = QtWidgets.QGroupBox("Tramos · rumbos y ángulos")
-        sides_layout = QtWidgets.QVBoxLayout(sides_group)
+        metrics_layout.addWidget(metrics)
+        metrics_layout.addWidget(QtWidgets.QLabel("Tramos · rumbos y ángulos"))
         self.sides = QtWidgets.QTableWidget(0, 5)
         self.sides.setHorizontalHeaderLabels([
             "Tramo", "Dist. (m)", "Rumbo", "Azimut", "Ángulo int."
         ])
         self.sides.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        self.sides.setMaximumHeight(175)
         self.sides.setAlternatingRowColors(True)
         self.sides.verticalHeader().hide()
         self.sides.horizontalHeader().setStretchLastSection(True)
-        sides_layout.addWidget(self.sides)
-        layout.addWidget(sides_group)
-
-        layout.addWidget(QtWidgets.QLabel("PUNTOS · ESTE / NORTE / COTA"))
-        self.points = QtWidgets.QTableWidget(0, 4)
-        self.points.setObjectName("TopografiaTablaPuntos")
-        self.points.setHorizontalHeaderLabels(["Punto", "Este", "Norte", "Cota"])
-        self.points.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        self.points.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-        self.points.setAlternatingRowColors(True)
-        self.points.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        self.points.verticalHeader().hide()
-        self.points.horizontalHeader().setStretchLastSection(True)
-        self.points.setToolTip(
-            "Coordenadas originales en metros. Tabla informativa, no editable todavía"
-        )
-        layout.addWidget(self.points, 1)
-        tools = QtWidgets.QHBoxLayout()
-        for command, name, hint in (
-            ("Topografia_AgregarPunto", "agregar-punto", "Añadir punto"),
-            ("Topografia_EditarPunto", "editar-punto", "Editar punto seleccionado"),
-            ("Topografia_EliminarPunto", "eliminar-punto", "Eliminar punto seleccionado"),
-            ("Topografia_ConectarPuntos", "conectar-puntos", "Conectar filas seleccionadas"),
-        ):
-            button = QtWidgets.QToolButton()
-            button.setIcon(QtGui.QIcon(icon_path(name)))
-            button.setIconSize(QtCore.QSize(26, 26))
-            button.setToolTip(hint)
-            button.setAccessibleName(hint)
-            button.clicked.connect(
-                lambda checked=False, cmd=command: Gui.runCommand(cmd)
-            )
-            tools.addWidget(button)
-        tools.addStretch()
-        layout.addLayout(tools)
+        metrics_layout.addWidget(self.sides, 1)
+        self.tabs.addTab(metrics_tab, "Mediciones")
 
         self.note = QtWidgets.QLabel(
-            "Las coordenadas de origen y el CRS deben verificarse antes de "
-            "utilizar mediciones en planos oficiales."
+            "Coordenadas en metros. Verifica el CRS antes de planos oficiales."
         )
         self.note.setWordWrap(True)
-        layout.addWidget(self.note)
+        outer.addWidget(self.note)
         self.refresh()
 
     def _select_object(self, obj):
+        from .selection_bridge import note_clear
+        self._updating = True
         try:
             Gui.Selection.clearSelection()
+            note_clear()
             Gui.Selection.addSelection(obj)
-        except Exception:
-            return
+        finally:
+            self._updating = False
         self.refresh()
 
     def select_parcel(self, row):
@@ -146,109 +213,6 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         if not self._updating and 0 <= row < len(self._catalog_objects):
             self._select_object(self._catalog_objects[row])
 
-    def _show_points(self, rows):
-        self.points.setRowCount(min(250, len(rows)))
-        for i, (name, x, y, z) in enumerate(rows[:250]):
-            values = (str(name), "{:.3f}".format(float(x)),
-                      "{:.3f}".format(float(y)), "{:.3f}".format(float(z)))
-            for j, value in enumerate(values):
-                self.points.setItem(i, j, QtWidgets.QTableWidgetItem(value))
-
-    def refresh(self):
-        doc = App.ActiveDocument
-        parcels = ([o for o in doc.Objects if hasattr(o, "CoordenadasJSON")]
-                   if doc else [])
-        catalogs = ([o for o in doc.Objects if hasattr(o, "PuntosJSON")]
-                    if doc else [])
-        selected = Gui.Selection.getSelection() if doc else []
-        selected_obj = next((
-            o for o in selected if o.Document == doc and (
-                hasattr(o, "CoordenadasJSON") or hasattr(o, "PuntosJSON"))
-        ), None)
-        selected_parcel = (selected_obj if selected_obj is not None
-                           and hasattr(selected_obj, "CoordenadasJSON") else None)
-        selected_catalog = (selected_obj if selected_obj is not None
-                            and hasattr(selected_obj, "PuntosJSON") else None)
-        if selected_obj is None and len(parcels) == 1:
-            selected_parcel = parcels[0]
-        if selected_obj is None and selected_parcel is None and len(catalogs) == 1:
-            selected_catalog = catalogs[0]
-        self._objects, self._catalog_objects = parcels, catalogs
-        self._updating = True
-        try:
-            self.project_name.setText(doc.Label if doc else "Sin documento activo")
-            self.parcels.clear()
-            for o in parcels:
-                self.parcels.addItem(o.Label)
-            self.catalogs.clear()
-            for o in catalogs:
-                self.catalogs.addItem(o.Label)
-            if selected_parcel:
-                for i, o in enumerate(parcels):
-                    if o.Name == selected_parcel.Name:
-                        self.parcels.setCurrentRow(i)
-                        break
-            if selected_catalog:
-                for i, o in enumerate(catalogs):
-                    if o.Name == selected_catalog.Name:
-                        self.catalogs.setCurrentRow(i)
-                        break
-        finally:
-            self._updating = False
-        self.area_value.setText("—")
-        self.ha_value.setText("—")
-        self.perimeter_value.setText("—")
-        self.points.setRowCount(0)
-        self.sides.setRowCount(0)
-        if selected_parcel:
-            try:
-                original = _points(selected_parcel)
-                stats = measure(original)
-                self.area_value.setText("{:,.3f} m²".format(stats["area_m2"]))
-                self.ha_value.setText("{:,.5f} ha".format(stats["area_ha"]))
-                self.perimeter_value.setText(
-                    "{:,.3f} m".format(stats["perimeter_m"]))
-                self._show_points([(p.name, p.x, p.y, p.z) for p in original])
-                segments = parcel_edges(original)
-                angles = interior_angles(original)
-                self.sides.setRowCount(len(segments))
-                for i, side in enumerate(segments):
-                    values = (
-                        "{}–{}".format(side["inicio"], side["fin"]),
-                        "{:.3f}".format(side["horizontal_m"]),
-                        side["rumbo"],
-                        "{:.2f}°".format(side["azimut_grados"]),
-                        "{:.2f}°".format(angles[i]),
-                    )
-                    for j, value in enumerate(values):
-                        self.sides.setItem(
-                            i, j, QtWidgets.QTableWidgetItem(value)
-                        )
-                self.note.setText(
-                    "Parcela {}. Confirma unidades y CRS antes de entregar planos."
-                    .format(selected_parcel.Label))
-            except (ValueError, TypeError, KeyError) as exc:
-                self.note.setText("Error al mostrar parcela: {}".format(exc))
-            return
-        if selected_catalog:
-            try:
-                rows = json.loads(selected_catalog.PuntosJSON)
-                self._show_points([
-                    (p["nombre"], p["este"], p["norte"], p["cota"])
-                    for p in rows
-                ])
-                self.note.setText(
-                    "Mostrando {} de {} puntos de {}. Tabla de consulta, "
-                    "sin edición todavía.".format(
-                        min(250, len(rows)), len(rows), selected_catalog.Label))
-            except (ValueError, TypeError, KeyError) as exc:
-                self.note.setText("Error al mostrar puntos: {}".format(exc))
-            return
-        self.note.setText(
-            "Selecciona una parcela o un levantamiento para ver sus datos."
-            if parcels or catalogs else
-            "Sin datos. Usa Importar Sight o Crear parcela."
-        )
     def active_catalog(self):
         row = self.catalogs.currentRow()
         if 0 <= row < len(self._catalog_objects):
@@ -258,20 +222,172 @@ class ExplorerPanel(QtWidgets.QDockWidget):
     def selected_point_indices(self, catalog):
         if catalog is None or self.active_catalog() != catalog:
             return []
-        return sorted({item.row() for item in self.points.selectedIndexes()})
+        return [index.row() for index in
+                self.points.selectionModel().selectedRows()]
+
+    def _set_table(self, source, rows):
+        # Evitar restablecer QTableView en cada Ctrl+clic.
+        if source != self._shown_key:
+            self.model.set_rows(rows)
+            self._shown_key = source
+
+    def _update_row_highlight(self, indices):
+        self.points.selectionModel().clearSelection()
+        flags = (QtCore.QItemSelectionModel.Select |
+                 QtCore.QItemSelectionModel.Rows)
+        for index in indices:
+            if 0 <= index < self.model.rowCount():
+                self.points.selectionModel().select(
+                    self.model.index(index, 0), flags
+                )
+        if len(indices) == 1:
+            self.points.scrollTo(self.model.index(indices[0], 0))
+
+    def refresh(self):
+        if self._updating:
+            return
+        self._updating = True
+        try:
+            self._refresh_data()
+        finally:
+            self._updating = False
+
+    def _refresh_data(self):
+        from . import selection_bridge
+        doc = App.ActiveDocument
+        self.project_name.setText(doc.Label if doc else "Sin documento activo")
+        parcels = ([o for o in doc.Objects if hasattr(o, "CoordenadasJSON")]
+                   if doc else [])
+        catalogs = ([o for o in doc.Objects if hasattr(o, "PuntosJSON")]
+                    if doc else [])
+        previously_displayed = self.active_catalog()
+        selected_objs = [
+            o for o in Gui.Selection.getSelection()
+            if doc and o.Document == doc
+        ] if doc else []
+        chosen_parcel = next(
+            (o for o in selected_objs if hasattr(o, "CoordenadasJSON")), None)
+        try:
+            chosen_catalog, indices = selection_bridge.selected_context()
+            selection_error = ""
+        except ValueError as exc:
+            chosen_catalog, indices = None, []
+            selection_error = str(exc)
+
+        if chosen_catalog is None and chosen_parcel is not None:
+            linked = getattr(chosen_parcel, "CatalogoPuntos", None)
+            if linked in catalogs:
+                chosen_catalog = linked
+        if chosen_catalog is None and previously_displayed in catalogs:
+            chosen_catalog = previously_displayed
+        if chosen_catalog is None and len(catalogs) == 1:
+            chosen_catalog = catalogs[0]
+        if chosen_parcel is None and len(parcels) == 1:
+            chosen_parcel = parcels[0]
+
+        self._objects, self._catalog_objects = parcels, catalogs
+        self.parcels.clear()
+        for item in parcels:
+            self.parcels.addItem(item.Label)
+        self.catalogs.clear()
+        for item in catalogs:
+            self.catalogs.addItem(item.Label)
+        if chosen_parcel in parcels:
+            self.parcels.setCurrentRow(parcels.index(chosen_parcel))
+        if chosen_catalog in catalogs:
+            self.catalogs.setCurrentRow(catalogs.index(chosen_catalog))
+
+        self.area_value.setText("—")
+        self.ha_value.setText("—")
+        self.perimeter_value.setText("—")
+        self.sides.setRowCount(0)
+
+        if chosen_catalog is not None:
+            from .project import read_catalog
+            try:
+                rows = read_catalog(chosen_catalog)
+                self._set_table((chosen_catalog.Name, chosen_catalog.PuntosJSON),
+                                rows)
+            except (ValueError, TypeError, KeyError) as exc:
+                self._set_table(None, [])
+                self.note.setText("Error en catálogo: {}".format(exc))
+        elif chosen_parcel is not None:
+            try:
+                points = _points(chosen_parcel)
+                rows = [dict(nombre=p.name, este=p.x, norte=p.y,
+                             cota=p.z) for p in points]
+                self._set_table((chosen_parcel.Name, chosen_parcel.CoordenadasJSON),
+                                rows)
+            except (ValueError, TypeError, KeyError):
+                self._set_table(None, [])
+        else:
+            self._set_table(None, [])
+
+        if indices:
+            self._update_row_highlight(indices)
+        else:
+            self.points.selectionModel().clearSelection()
+        self.selection_info.setText(
+            ("{} seleccionado(s) en orden: ".format(len(indices)) +
+             " → ".join(self.model.rows[i]["nombre"]
+                        for i in indices if i < len(self.model.rows)))
+            if indices else
+            "Seleccionar: clic en vértice · Ctrl+clic para añadir · Esc para salir del dibujo"
+        )
+        if selection_error:
+            self.note.setText(selection_error)
+        else:
+            self.note.setText(
+                "{} puntos visibles en la tabla. El dibujo es el área "
+                "principal de selección.".format(self.model.rowCount())
+            )
+
+        if chosen_parcel is not None:
+            try:
+                points = _points(chosen_parcel)
+                stats = measure(points)
+                self.area_value.setText("{:,.3f} m²".format(stats["area_m2"]))
+                self.ha_value.setText("{:,.5f} ha".format(stats["area_ha"]))
+                self.perimeter_value.setText(
+                    "{:,.3f} m".format(stats["perimeter_m"]))
+                segments = parcel_edges(points)
+                angles = interior_angles(points)
+                self.sides.setRowCount(len(segments))
+                for i, side in enumerate(segments):
+                    data = (
+                        "{}–{}".format(side["inicio"], side["fin"]),
+                        "{:.3f}".format(side["horizontal_m"]),
+                        side["rumbo"],
+                        "{:.2f}°".format(side["azimut_grados"]),
+                        "{:.2f}°".format(angles[i]),
+                    )
+                    for j, value in enumerate(data):
+                        self.sides.setItem(
+                            i, j, QtWidgets.QTableWidgetItem(value)
+                        )
+            except (ValueError, TypeError, KeyError):
+                pass
 
 
 class _SelectionObserver:
     def addSelection(self, *args):
+        from .selection_bridge import note_add
+        note_add(*args)
         refresh_panel()
 
     def removeSelection(self, *args):
+        from .selection_bridge import note_remove
+        note_remove(*args)
         refresh_panel()
 
     def clearSelection(self, *args):
+        from .selection_bridge import note_clear
+        note_clear(*args)
         refresh_panel()
 
     def setSelection(self, *args):
+        from .selection_bridge import note_set
+        note_set(*args)
         refresh_panel()
 
 
@@ -289,7 +405,8 @@ def show_panel():
     global _panel, _observing
     main = Gui.getMainWindow()
     if _panel is None:
-        existing = main.findChild(QtWidgets.QDockWidget, "TopografiaExplorerPanel")
+        existing = main.findChild(QtWidgets.QDockWidget,
+                                  "TopografiaExplorerPanel")
         _panel = existing if existing is not None else ExplorerPanel(main)
         if existing is None:
             main.addDockWidget(QtCore.Qt.RightDockWidgetArea, _panel)
@@ -322,8 +439,8 @@ class ToggleExplorer:
         return {
             "Pixmap": icon_path("panel"),
             "MenuText": "Mostrar u ocultar explorador",
-            "ToolTip": "Explorador de Topografía\nVer parcelas, áreas y vértices",
-            "StatusTip": "Abre o cierra el panel lateral de puntos y parcelas",
+            "ToolTip": "Explorador de Topografía\nVer todas las estaciones y medidas",
+            "StatusTip": "Mostrar el panel de puntos y mediciones",
         }
 
     def IsActive(self):
@@ -337,10 +454,10 @@ Gui.addCommand("Topografia_MostrarPanel", ToggleExplorer())
 
 
 def active_catalog():
-    return _panel.active_catalog() if _panel is not None and _panel.isVisible() else None
+    return (_panel.active_catalog() if _panel is not None
+            and _panel.isVisible() else None)
 
 
 def selected_point_indices(catalog):
-    if _panel is not None and _panel.isVisible():
-        return _panel.selected_point_indices(catalog)
-    return []
+    return (_panel.selected_point_indices(catalog) if _panel is not None
+            and _panel.isVisible() else [])
