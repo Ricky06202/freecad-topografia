@@ -16,6 +16,7 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
         from freecad.Topografia import commands  # Registra comandos
         from freecad.Topografia import sight_commands  # Importador Sight
         from freecad.Topografia import point_commands  # Editor de puntos
+        from freecad.Topografia import sheet_commands  # Planos
         from freecad.Topografia import ui_dock  # Explorador lateral
         names = [
             "Topografia_ImportarSight",
@@ -26,6 +27,7 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
             "Topografia_CrearParcela",
             "Topografia_MedirParcela",
             "Topografia_ExportarPlano",
+            "Topografia_GenerarPlano",
             "Topografia_MostrarPanel",
         ]
         self.appendToolbar("Topografía", names)

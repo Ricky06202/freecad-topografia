@@ -7,7 +7,7 @@ from pathlib import Path
 from freecad.Topografia.ui_resources import icon_path
 
 ROOT = Path(__file__).resolve().parents[1] / "freecad" / "Topografia"
-ICONS = ("importar-sight", "crear-parcela", "medir-parcela", "exportar-plano", "panel")
+ICONS = ("importar-sight", "crear-parcela", "medir-parcela", "exportar-plano", "panel", "agregar-punto", "editar-punto", "eliminar-punto", "conectar-puntos", "generar-plano")
 
 
 class UiAssetsTests(unittest.TestCase):
@@ -25,7 +25,7 @@ class UiAssetsTests(unittest.TestCase):
             icon_path("../../etc/passwd")
 
     def test_metadata_and_workbench_wiring(self):
-        for filename in ("commands.py", "sight_commands.py", "ui_dock.py"):
+        for filename in ("commands.py", "sight_commands.py", "ui_dock.py", "point_commands.py", "sheet_commands.py"):
             source = (ROOT / filename).read_text(encoding="utf-8")
             ast.parse(source)
             self.assertIn('"Pixmap": icon_path(', source)
@@ -34,6 +34,8 @@ class UiAssetsTests(unittest.TestCase):
         gui = (ROOT / "init_gui.py").read_text(encoding="utf-8")
         self.assertIn("QtCore.Qt.ToolButtonIconOnly", gui)
         self.assertIn("Topografia_MostrarPanel", gui)
+        self.assertIn("Topografia_GenerarPlano", gui)
+        self.assertIn("Topografia_ConectarPuntos", gui)
         self.assertIn("ui_dock.show_panel()", gui)
         self.assertIn("ui_dock.hide_panel()", gui)
 
