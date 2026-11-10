@@ -18,17 +18,12 @@ def _error(exc):
 
 
 def _selection():
-    from . import ui_dock
-    chosen = [o for o in Gui.Selection.getSelection() if hasattr(o, "PuntosJSON")]
-    catalog = chosen[0] if chosen else ui_dock.active_catalog()
-    if catalog is None and App.ActiveDocument:
-        available = [o for o in App.ActiveDocument.Objects if hasattr(o, "PuntosJSON")]
-        if len(available) == 1:
-            catalog = available[0]
-        elif len(available) > 1:
-            raise ValueError("Selecciona un levantamiento del panel lateral")
-    return catalog, ui_dock.selected_point_indices(catalog)
-
+    """Usar primero vértices seleccionados en el dibujo; tabla opcional."""
+    from . import ui_dock, selection_bridge
+    catalog, indices = selection_bridge.selected_context()
+    if catalog is not None and not indices:
+        indices = ui_dock.selected_point_indices(catalog)
+    return catalog, indices
 
 class PointDialog(QtWidgets.QDialog):
     def __init__(self, title, row=None):
@@ -142,7 +137,7 @@ class EditPoint:
         try:
             catalog, indices = _selection()
             if catalog is None or len(indices) != 1:
-                raise ValueError("Selecciona una sola fila de un levantamiento")
+                raise ValueError("Selecciona UN punto en el plano (clic sobre el vértice) para editarlo")
             rows = read_catalog(catalog)
             dialog = PointDialog("Editar punto", rows[indices[0]])
             if dialog.exec() != QtWidgets.QDialog.Accepted:
@@ -164,9 +159,9 @@ class EditPoint:
 class DeletePoint:
     def GetResources(self):
         return {
-            "Pixmap": icon_path("eliminar-punto"), "MenuText": "Eliminar punto",
-            "ToolTip": "Eliminar punto\nQuitar una estación seleccionada",
-            "StatusTip": "Eliminar un punto con confirmación",
+            "Pixmap": icon_path("eliminar-punto"), "MenuText": "Eliminar puntos",
+            "ToolTip": "Eliminar puntos\\nQuitar uno o varios vértices seleccionados",
+            "StatusTip": "Borrar los puntos seleccionados en el plano (con confirmación)",
         }
 
     def IsActive(self):
@@ -175,22 +170,32 @@ class DeletePoint:
     def Activated(self):
         try:
             catalog, indices = _selection()
-            if catalog is None or len(indices) != 1:
-                raise ValueError("Selecciona una sola fila de un levantamiento")
+            if catalog is None or not indices:
+                raise ValueError(
+                    "Selecciona uno o varios puntos en el plano con clic "
+                    "y Ctrl+clic, luego pulsa Eliminar."
+                )
             rows = read_catalog(catalog)
+            indices = sorted(set(indices))
+            labels = ", ".join(rows[i]["nombre"] for i in indices[:8])
+            if len(indices) > 8:
+                labels += " y {} más".format(len(indices) - 8)
             answer = QtWidgets.QMessageBox.question(
-                Gui.getMainWindow(), "Confirmar eliminación",
-                "¿Eliminar el punto {}?\nLos puntos utilizados por parcelas "
-                "vinculadas están protegidos.".format(rows[indices[0]]["nombre"]),
+                Gui.getMainWindow(), "Eliminar puntos",
+                "¿Eliminar {} punto(s)?\\n{}\\n\\n"
+                "No se eliminarán puntos utilizados por parcelas vinculadas."
+                .format(len(indices), labels),
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
             )
             if answer != QtWidgets.QMessageBox.Yes:
                 return
-            updated = remove_station(rows, indices[0])
+            updated = list(rows)
+            for index in reversed(indices):
+                updated = remove_station(updated, index)
             doc = catalog.Document
-            doc.openTransaction("Eliminar punto")
+            doc.openTransaction("Eliminar puntos seleccionados")
             try:
-                write_catalog(doc, catalog, updated, removed_index=indices[0])
+                write_catalog(doc, catalog, updated, removed_indices=indices)
                 doc.commitTransaction()
             except Exception:
                 doc.abortTransaction()
@@ -199,13 +204,12 @@ class DeletePoint:
         except (ValueError, IndexError, RuntimeError) as exc:
             _error(exc)
 
-
 class ConnectPoints:
     def GetResources(self):
         return {
             "Pixmap": icon_path("conectar-puntos"), "MenuText": "Conectar puntos",
-            "ToolTip": "Conectar puntos\nCrear parcela desde filas seleccionadas",
-            "StatusTip": "Unir vértices en orden de tabla y cerrar el polígono",
+            "ToolTip": "Conectar puntos\nCrear parcela desde vértices seleccionados en el dibujo",
+            "StatusTip": "Conectar los vértices en el orden de selección",
         }
 
     def IsActive(self):
@@ -218,16 +222,10 @@ class ConnectPoints:
                 raise ValueError("Primero añade o importa algunos puntos")
             rows = read_catalog(catalog)
             if not indices:
-                if len(rows) > 250:
-                    raise ValueError("Selecciona filas visibles: el catálogo supera 250 puntos")
-                answer = QtWidgets.QMessageBox.question(
-                    Gui.getMainWindow(), "Conectar todos",
-                    "¿Crear una parcela conectando TODOS los puntos en orden de tabla?",
-                    QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+                raise ValueError(
+                    "Selecciona al menos tres puntos en el dibujo "
+                    "(Ctrl+clic para añadir) y pulsa Conectar."
                 )
-                if answer != QtWidgets.QMessageBox.Yes:
-                    return
-                indices = list(range(len(rows)))
             points = parcel_from_rows(rows, indices)
             doc = catalog.Document
             doc.openTransaction("Conectar puntos")
