@@ -87,7 +87,7 @@ def linked_parcels(doc, catalog):
     ]
 
 
-def write_catalog(doc, obj, rows, removed_index=None):
+def write_catalog(doc, obj, rows, removed_index=None, removed_indices=None):
     """Actualiza catálogo y reconstruye parcelas vinculadas, en una transacción ajena.
 
     Se calculan y validan TODAS las geometrías antes de cambiar objetos.
@@ -110,18 +110,24 @@ def write_catalog(doc, obj, rows, removed_index=None):
         str(rows[0]["nombre"]), float(rows[0]["este"]),
         float(rows[0]["norte"]), float(rows[0].get("cota", 0.0))
     ))
+    # Compatibilidad con la operación anterior, que borraba una sola estación.
+    removed = set(removed_indices or [])
+    if removed_index is not None:
+        removed.add(removed_index)
+    if any(not isinstance(index, int) or index < 0 for index in removed):
+        raise ValueError("Índices de eliminación inválidos")
     links = []
     for parcel in linked_parcels(doc, obj):
         old_ids = json.loads(parcel.IndicesPuntosJSON)
-        if removed_index is not None:
-            if removed_index in old_ids:
-                raise ValueError(
-                    "Este punto pertenece a una parcela. "
-                    "Modifica primero la parcela; no puede borrarse sin invalidarla."
-                )
-            indices = [idx - 1 if idx > removed_index else idx for idx in old_ids]
-        else:
-            indices = old_ids
+        if any(idx in removed for idx in old_ids):
+            raise ValueError(
+                "Uno de los puntos seleccionados pertenece a una parcela. "
+                "Modifica primero la parcela; no se puede borrar un vértice en uso."
+            )
+        indices = [
+            idx - sum(1 for deleted in removed if deleted < idx)
+            for idx in old_ids
+        ]
         vertices = parcel_from_rows(rows, indices)
         stats = measure(vertices)
         geometry = [
