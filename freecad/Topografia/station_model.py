@@ -49,8 +49,11 @@ def edit_station(rows, index, item):
     replacement = dict(item)
     # La línea de origen Sight forma parte de la procedencia y no se edita
     # en el formulario. Conservarla al cambiar las coordenadas del punto.
-    if not replacement.get("line") and result[index].get("line"):
-        replacement["line"] = result[index]["line"]
+    # Las filas Sight usan "linea"; conservar también el alias histórico "line".
+    for provenance_key in ("linea", "line"):
+        if (provenance_key not in replacement
+                and provenance_key in result[index]):
+            replacement[provenance_key] = result[index][provenance_key]
     result[index] = replacement
     return result
 
