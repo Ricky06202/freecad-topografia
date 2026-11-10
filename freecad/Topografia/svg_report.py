@@ -3,7 +3,8 @@ from xml.sax.saxutils import escape
 from .geometry import measure
 
 
-def create_svg(points, label="Parcela"):
+def create_svg(points, label="Parcela", metadata=None):
+    metadata = metadata or {}
     m = measure(points)
     x0, x1 = min(p.x for p in points), max(p.x for p in points)
     y0, y1 = min(p.y for p in points), max(p.y for p in points)
@@ -21,6 +22,10 @@ def create_svg(points, label="Parcela"):
         ("M" if i == 0 else "L") + "{:.2f},{:.2f}".format(x, y)
         for i, (x, y) in enumerate(positions)
     ) + "Z"
+    title = escape(str(metadata.get("titulo") or label))
+    author = escape(str(metadata.get("autor") or "Sin especificar"))
+    date = escape(str(metadata.get("fecha") or "Sin especificar"))
+    crs = escape(str(metadata.get("crs") or "No declarado"))
     rows = [
         '<?xml version="1.0" encoding="UTF-8"?>',
         '<svg xmlns="http://www.w3.org/2000/svg" width="297mm" height="210mm" viewBox="0 0 1122 794">',
@@ -47,16 +52,26 @@ def create_svg(points, label="Parcela"):
         '<text x="839" y="261" font-family="sans-serif" font-size="16">Perímetro: {:.3f} m</text>'.format(m["perimeter_m"]),
         '<text x="839" y="309" font-family="sans-serif" font-size="17" fill="#123">COORDENADAS (m)</text>',
     ])
-    for i, point in enumerate(points[:13]):
+    for i, point in enumerate(points[:10]):
         rows.append('<text x="839" y="{}" font-family="sans-serif" font-size="11">{}</text>'.format(
             336 + i * 26, escape("{}  E {:.2f}  N {:.2f}".format(
                 point.name, point.x, point.y))))
-    if len(points) > 13:
+    if len(points) > 10:
         rows.append('<text x="839" y="693" font-family="sans-serif" font-size="12">+ {} puntos más</text>'.format(
-            len(points) - 13))
+            len(points) - 10))
     rows.extend([
-        '<line x1="52" y1="725" x2="1073" y2="725" stroke="#abc"/>',
-        '<text x="55" y="749" font-family="sans-serif" font-size="12" fill="#456">Medidas horizontales · Plano esquemático, sin CRS ni escala cartográfica certificada.</text>',
+        '<rect x="55" y="635" width="1016" height="126" fill="#ffffff" stroke="#456" stroke-width="1.5"/>',
+        '<line x1="55" y1="684" x2="1071" y2="684" stroke="#abc"/>',
+        '<line x1="720" y1="635" x2="720" y2="761" stroke="#abc"/>',
+        '<text x="72" y="658" font-family="sans-serif" font-size="12" fill="#456">PLANO / PROYECTO</text>',
+        '<text x="72" y="677" font-family="sans-serif" font-size="20" font-weight="bold">{}</text>'.format(title),
+        '<text x="738" y="655" font-family="sans-serif" font-size="13" fill="#456">Elaborado por</text>',
+        '<text x="738" y="677" font-family="sans-serif" font-size="19">{}</text>'.format(author),
+        '<text x="72" y="706" font-family="sans-serif" font-size="14">Fecha: {}</text>'.format(date),
+        '<text x="72" y="728" font-family="sans-serif" font-size="14">CRS: {}</text>'.format(crs),
+        '<text x="738" y="708" font-family="sans-serif" font-size="14">Escala: esquemática / no certificada</text>',
+        '<text x="738" y="730" font-family="sans-serif" font-size="12">Área horizontal: {:.3f} m²</text>'.format(m["area_m2"]),
+        '<text x="72" y="750" font-family="sans-serif" font-size="11" fill="#456">Cuadro de puntos: 10 primeros; exporta CSV para lista completa. Revisión técnica requerida.</text>',
         '</svg>',
     ])
     return "\n".join(rows) + "\n"
