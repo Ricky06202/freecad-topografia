@@ -22,35 +22,44 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
         from freecad.Topografia import earthwork_commands
         from freecad.Topografia import sheet_commands  # Planos
         from freecad.Topografia import ui_dock  # Explorador lateral
-        names = [
-            "Topografia_ImportarSight",
-            "Topografia_PuntoPorClic",
-            "Topografia_ReubicarPunto",
-            "Topografia_AgregarPunto",
-            "Topografia_EditarPunto",
-            "Topografia_EliminarPunto",
-            "Topografia_ConectarPuntos",
-            "Topografia_Subdividir",
-            "Topografia_SuperficieTIN",
-            "Topografia_CurvasNivel",
-            "Topografia_Etiquetar",
-            "Topografia_Perfil",
-            "Topografia_CorteRelleno",
-            "Topografia_CrearParcela",
-            "Topografia_MedirParcela",
-            "Topografia_ExportarPlano",
-            "Topografia_GenerarPlano",
-            "Topografia_MostrarPanel",
-        ]
-        self.appendToolbar("Topografía", names)
-        self.appendMenu("Topografía", names)
+        groups = {
+            "Puntos": [
+                "Topografia_ImportarSight",
+                "Topografia_PuntoPorClic",
+                "Topografia_ReubicarPunto",
+                "Topografia_AgregarPunto",
+                "Topografia_EditarPunto",
+                "Topografia_EliminarPunto",
+                "Topografia_ConectarPuntos",
+            ],
+            "Parcelas": [
+                "Topografia_CrearParcela",
+                "Topografia_MedirParcela",
+                "Topografia_Subdividir",
+                "Topografia_Etiquetar",
+            ],
+            "Terreno": [
+                "Topografia_SuperficieTIN",
+                "Topografia_CurvasNivel",
+                "Topografia_Perfil",
+                "Topografia_CorteRelleno",
+            ],
+            "Planos": [
+                "Topografia_ExportarPlano",
+                "Topografia_GenerarPlano",
+                "Topografia_MostrarPanel",
+            ],
+        }
+        for name, commands_in_group in groups.items():
+            self.appendToolbar("Topografía · " + name, commands_in_group)
+            self.appendMenu(["Topografía", name], commands_in_group)
 
     def Activated(self):
         from freecad.Topografia import ui_dock
         # La barra de FreeCAD muestra exclusivamente iconos; los nombres
         # permanecen accesibles por tooltip, barra de estado y menús.
         for toolbar in FreeCADGui.getMainWindow().findChildren(QtWidgets.QToolBar):
-            if toolbar.windowTitle() == "Topografía":
+            if toolbar.windowTitle().startswith("Topografía · "):
                 toolbar.setToolButtonStyle(QtCore.Qt.ToolButtonIconOnly)
                 toolbar.setIconSize(QtCore.QSize(28, 28))
         ui_dock.show_panel()
