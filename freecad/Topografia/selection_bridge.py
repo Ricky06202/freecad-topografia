@@ -60,13 +60,13 @@ def selected_context():
         raise ValueError("Selecciona un solo levantamiento")
     if selected_catalogs:
         return selected_catalogs[0], []
+    catalogs = [o for o in doc.Objects if hasattr(o, "PuntosJSON")]
+    if len(catalogs) == 1:
+        return catalogs[0], []
     from . import ui_dock
     panel_catalog = ui_dock.active_catalog()
     if panel_catalog is not None and panel_catalog.Document == doc:
         return panel_catalog, []
-    catalogs = [o for o in doc.Objects if hasattr(o, "PuntosJSON")]
-    if len(catalogs) == 1:
-        return catalogs[0], []
     return None, []
 
 
