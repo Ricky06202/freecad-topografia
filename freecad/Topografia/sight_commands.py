@@ -10,6 +10,16 @@ from .project import add_catalog
 from .commands import _create_parcel
 
 
+def _wide_span(points, limit_m=100000.0):
+    """Heurística conservadora: advertir distancias >100 km, no inferir CRS."""
+    if not points:
+        return False
+    return (
+        max(p.x for p in points) - min(p.x for p in points) > limit_m
+        or max(p.y for p in points) - min(p.y for p in points) > limit_m
+    )
+
+
 class SightPreview(QtWidgets.QDialog):
     def __init__(self, text, filename, parent=None):
         super().__init__(parent)
@@ -64,6 +74,9 @@ class SightPreview(QtWidgets.QDialog):
             self.survey = None
             return
         s = self.survey
+        # Distintos sistemas/coordenadas históricas pueden coexistir
+        # en un mismo archivo. No importar todas como si compartieran origen.
+        self.mixed_frames = _wide_span([p for p, _desc, _line in s.points])
         self.summary.setText(
             "{}: {} filas de puntos y {} recorridos. "
             "CRS/datum y unidades no declarados: verifica antes de trabajar.".format(
@@ -81,7 +94,7 @@ class SightPreview(QtWidgets.QDialog):
             )
             permitted = stats is not None and not mismatch
             box = QtWidgets.QCheckBox()
-            box.setChecked(permitted)
+            box.setChecked(permitted and not self.mixed_frames)
             box.setEnabled(permitted)
             self.table.setCellWidget(i, 0, box)
             self.checks.append(box)
@@ -100,8 +113,14 @@ class SightPreview(QtWidgets.QDialog):
             )
             for column, value in enumerate(cells, 1):
                 self.table.setItem(i, column, QtWidgets.QTableWidgetItem(value))
+        notices = list(s.warnings[:15])
+        if self.mixed_frames:
+            notices.insert(0,
+                "ATENCIÓN: aparecen coordenadas muy alejadas entre sí. "
+                "Puede haber proyectos históricos o referencias distintas; "
+                "selecciona solo las parcelas de un mismo conjunto.")
         self.warnings.setPlainText(
-            "\n".join(s.warnings[:15]) if s.warnings else
+            "\n".join(notices) if notices else
             "Sin advertencias de lectura. Comprueba el orden de coordenadas."
         )
 
@@ -141,6 +160,23 @@ class ImportSight:
             return
         report = preview.survey
         chosen = preview.selected()
+        chosen_points = [p for t in chosen for p in t.vertices()]
+        if _wide_span(chosen_points):
+            QtWidgets.QMessageBox.warning(
+                Gui.getMainWindow(), "Coordenadas incompatibles",
+                "Las parcelas seleccionadas están a más de 100 km en el "
+                "plano. Importa los recorridos en proyectos separados "
+                "hasta verificar el sistema de coordenadas."
+            )
+            return
+        if chosen and _wide_span([p for p, _desc, _line in report.points]):
+            # El historial Sight puede contener proyectos no relacionados.
+            # Conservar únicamente las estaciones de las parcelas elegidas.
+            keys = {(p.name, p.x, p.y, p.z) for p in chosen_points}
+            report.points = [
+                row for row in report.points
+                if (row[0].name, row[0].x, row[0].y, row[0].z) in keys
+            ]
         doc = App.ActiveDocument or App.newDocument("Topografia")
         doc.openTransaction("Importar archivo Sight Survey")
         try:
