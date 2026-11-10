@@ -7,7 +7,7 @@ from pathlib import Path
 from freecad.Topografia.ui_resources import icon_path
 
 ROOT = Path(__file__).resolve().parents[1] / "freecad" / "Topografia"
-ICONS = ("importar-sight", "crear-parcela", "medir-parcela", "exportar-plano", "panel", "agregar-punto", "editar-punto", "eliminar-punto", "conectar-puntos", "generar-plano", "clic-punto", "mover-punto", "subdividir", "superficie-tin", "curvas-nivel")
+ICONS = ("importar-sight", "crear-parcela", "medir-parcela", "exportar-plano", "panel", "agregar-punto", "editar-punto", "eliminar-punto", "conectar-puntos", "generar-plano", "clic-punto", "mover-punto", "subdividir", "superficie-tin", "curvas-nivel", "etiquetar")
 
 
 class UiAssetsTests(unittest.TestCase):
@@ -25,7 +25,7 @@ class UiAssetsTests(unittest.TestCase):
             icon_path("../../etc/passwd")
 
     def test_metadata_and_workbench_wiring(self):
-        for filename in ("commands.py", "sight_commands.py", "ui_dock.py", "point_commands.py", "sheet_commands.py", "interactive_commands.py", "terrain_commands.py", "subdivision_commands.py"):
+        for filename in ("commands.py", "sight_commands.py", "ui_dock.py", "point_commands.py", "sheet_commands.py", "interactive_commands.py", "terrain_commands.py", "subdivision_commands.py", "annotations.py"):
             source = (ROOT / filename).read_text(encoding="utf-8")
             ast.parse(source)
             self.assertIn('"Pixmap": icon_path(', source)
