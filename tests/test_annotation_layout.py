@@ -33,6 +33,25 @@ class AnnotationLayoutTests(unittest.TestCase):
         area = next(x for x in label_layout(p) if x["kind"] == "area")
         self.assertTrue(_inside(area["x"], area["y"], p))
 
+    def test_annotation_text_scales_with_dimensions(self):
+        small = [Point("P1", 0, 0), Point("P2", 10, 0),
+                 Point("P3", 10, 5), Point("P4", 0, 5)]
+        large = [Point(p.name, p.x * 100, p.y * 100) for p in small]
+        a, b = label_layout(small), label_layout(large)
+        self.assertEqual([x["kind"] for x in a],
+                         [x["kind"] for x in b])
+        for left, right in zip(a, b):
+            self.assertGreater(left["font_m"], 0)
+            self.assertAlmostEqual(
+                right["font_m"] / left["font_m"], 100, places=5
+            )
+
+    def test_short_segments_get_smaller_labels_to_prevent_overflow(self):
+        p = [Point("P1", 0, 0), Point("P2", 100, 0),
+             Point("P3", 100, 5), Point("P4", 0, 5)]
+        labels = [x for x in label_layout(p) if x["kind"] == "side"]
+        self.assertLess(labels[1]["font_m"], labels[0]["font_m"])
+
     def test_two_point_line(self):
         p = [Point("A", 500, 200), Point("B", 510, 200)]
         self.assertEqual(

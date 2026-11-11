@@ -28,19 +28,17 @@ def refresh_annotations(trace):
     is_open = getattr(trace, "TipoTrazado", "") == "Abierto"
     labels = label_layout(points, closed=not is_open)
     project = ensure_project(doc, points[0])
-    span = max(
-        max(p.x for p in points) - min(p.x for p in points),
-        max(p.y for p in points) - min(p.y for p in points),
-        0.1
-    )
-    font_mm = max(180, min(1400, span * 8))
+    # El layout entrega tamaño en metros del terreno. FreeCAD Draft
+    # espera FontSize en milímetros del modelo (escala con el zoom).
+    # No usar tamaños globales fijos en mm.
     was_visible = bool(group.ViewObject.Visibility)
     for old in list(group.Group):
         doc.removeObject(old.Name)
     for item in labels:
         point = type(points[0])("label", item["x"], item["y"], 0)
         position = position_for(project, point)
-        pos = App.Vector(position.x, position.y, max(1, font_mm * 0.1))
+        font_mm = item["font_m"] * 1000.0
+        pos = App.Vector(position.x, position.y, max(0.1, font_mm * .10))
         tag = Draft.make_text(item["text"], placement=pos)
         if tag is None:
             raise RuntimeError("No se pudo dibujar la etiqueta del trazado")
@@ -50,10 +48,9 @@ def refresh_annotations(trace):
             "area": "Área y perímetro",
             "length": "Longitud total"
         }[item["kind"]] + " · " + trace.Label
-        tag.ViewObject.FontSize = (
-            font_mm * 1.05 if item["kind"] in ("area", "length") else
-            font_mm * .75
-        )
+        tag.ViewObject.FontSize = font_mm
+        if hasattr(tag.ViewObject, "DisplayMode"):
+            tag.ViewObject.DisplayMode = "World"
         if hasattr(tag.ViewObject, "Justification"):
             tag.ViewObject.Justification = "Center"
         if hasattr(tag.ViewObject, "TextColor"):

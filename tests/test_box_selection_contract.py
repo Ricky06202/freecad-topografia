@@ -66,8 +66,14 @@ class BoxSelectionContractTests(unittest.TestCase):
         gui.Selection = self.selection
         gui.addCommand = lambda name, command: None
         gui.getMainWindow = lambda: types.SimpleNamespace(statusBar=lambda: status)
+        self.queued = []
         pyside = types.ModuleType("PySide")
         pyside.QtWidgets = types.SimpleNamespace()
+        pyside.QtCore = types.SimpleNamespace(
+            QTimer=types.SimpleNamespace(
+                singleShot=lambda delay, fn: self.queued.append(fn)
+            )
+        )
         coin = types.ModuleType("coin")
         coin.SoMouseButtonEvent = types.SimpleNamespace(BUTTON1=1, BUTTON2=2)
         coin.SoButtonEvent = types.SimpleNamespace(DOWN="DOWN", UP="UP")
@@ -124,7 +130,8 @@ class BoxSelectionContractTests(unittest.TestCase):
         self.assertEqual(self.selection.selected,
                          ["Vertex1", "Vertex2", "Vertex3", "Vertex4"])
 
-    def event(self, button=1, state="DOWN", pos=(5, 5), ctrl=False):
+    def event(self, button=1, state="DOWN", pos=(5, 5), ctrl=False,
+              picked=False):
         obj = types.SimpleNamespace(
             getButton=lambda: button,
             getState=lambda: state,
@@ -134,44 +141,74 @@ class BoxSelectionContractTests(unittest.TestCase):
         marked = []
         callback = types.SimpleNamespace(
             getEvent=lambda: obj,
+            getPickedPoint=lambda: object() if picked else None,
             setHandled=lambda: marked.append(True),
         )
         return callback, marked
 
     def test_plain_click_leaves_events_for_freecad(self):
-        down, d_handled = self.event()
+        down, d_handled = self.event(picked=True)
         up, u_handled = self.event(state="UP")
         self.tool._button(down)
         self.tool._button(up)
         self.assertEqual(d_handled, [])
         self.assertEqual(u_handled, [])
         self.assertEqual(self.selection.selected, [])
-        # La selección nativa es la responsable de añadir el objeto.
-        self.selection.addSelection("D", "Puntos", "Vertex1")
-        self.assertEqual(self.selection.selected, ["Vertex1"])
+        self.assertIsNone(self.tool.start_xy)
+
+    def test_blank_click_also_passes_up_and_down(self):
+        down, d_handled = self.event()
+        up, u_handled = self.event(state="UP")
+        self.tool._button(down)
+        self.tool._button(up)
+        self.assertEqual(d_handled + u_handled, [])
+        self.assertEqual(self.queued, [])
 
     def test_small_movement_is_still_a_click(self):
         self.tool._button(self.event(pos=(5, 5))[0])
-        self.tool._move(self.event(pos=(9, 8))[0])
-        up, handled = self.event(state="UP", pos=(9, 8))
+        move, marked_move = self.event(pos=(9, 8))
+        self.tool._move(move)
+        up, marked_up = self.event(state="UP", pos=(9, 8))
         self.tool._button(up)
-        self.assertEqual(handled, [])
+        self.assertEqual(marked_move + marked_up, [])
         self.assertFalse(self.tool.dragging)
 
-    def test_true_drag_selects_points_and_resets(self):
+    def test_geometry_drag_does_not_enter_rectangle(self):
+        self.tool._button(self.event(picked=True, pos=(5, 5))[0])
+        self.tool._move(self.event(pos=(30, 30))[0])
+        up, marked = self.event(state="UP", pos=(30, 30))
+        self.tool._button(up)
+        self.assertEqual(self.queued, [])
+        self.assertEqual(marked, [])
+        self.assertEqual(self.selection.selected, [])
+
+    def test_true_drag_does_not_steal_mouse_release(self):
         self.tool._draw_outline = lambda a, b: None
-        self.tool._button(self.event(pos=(0, 0))[0])
-        drag, marked = self.event(pos=(30, 30))
+        down, marked_down = self.event(pos=(0, 0))
+        self.tool._button(down)
+        drag, marked_move = self.event(pos=(30, 30))
         self.tool._move(drag)
         self.assertTrue(self.tool.dragging)
-        self.assertEqual(marked, [True])
         up, marked_up = self.event(state="UP", pos=(30, 30))
         self.tool._button(up)
-        self.assertEqual(marked_up, [True])
+        self.assertEqual(marked_down + marked_move + marked_up, [])
+        self.assertEqual(self.selection.selected, [])
+        self.assertEqual(len(self.queued), 1)
+        # Coin/FreeCAD termina el UP antes de ejecutar la selección propia.
+        self.queued.pop()()
         self.assertEqual(self.selection.selected,
                          ["Vertex1", "Vertex2", "Vertex3"])
         self.assertFalse(self.tool.dragging)
         self.assertIsNone(self.tool.start_xy)
+
+    def test_deferred_drag_cancelled_if_tool_closed(self):
+        self.tool._draw_outline = lambda a, b: None
+        self.tool._button(self.event(pos=(0, 0))[0])
+        self.tool._move(self.event(pos=(30, 30))[0])
+        self.tool._button(self.event(state="UP", pos=(30, 30))[0])
+        self.tool.doc = None
+        self.queued.pop()()
+        self.assertEqual(self.selection.selected, [])
 
     def test_right_click_is_native_and_cancels_pending_drag(self):
         self.tool._button(self.event(pos=(5, 5))[0])

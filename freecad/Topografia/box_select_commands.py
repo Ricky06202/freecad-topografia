@@ -8,7 +8,7 @@ import math
 
 import FreeCAD as App
 import FreeCADGui as Gui
-from PySide import QtWidgets
+from PySide import QtCore, QtWidgets
 from pivy import coin
 
 from .selection_box_math import rectangle_indices
@@ -24,6 +24,7 @@ class _RectangleTool:
         self.current_xy = None
         self.ctrl_down = False
         self.dragging = False
+        self.pressed_on_geometry = False
         self.root = None
         self.overlay = None
         self.points_node = None
@@ -88,7 +89,7 @@ class _RectangleTool:
             self.stop()
             raise
         Gui.getMainWindow().statusBar().showMessage(
-            "Selección predeterminada: clic en punto o arrastra un recuadro "
+            "Clic: FreeCAD normal · arrastra desde espacio vacío: recuadro "
             "· Ctrl añade otros · Esc vuelve a FreeCAD."
         )
 
@@ -115,11 +116,13 @@ class _RectangleTool:
         self.start_xy = None
         self.current_xy = None
         self.dragging = False
+        self.pressed_on_geometry = False
 
     def _reset_drag(self):
         self.start_xy = None
         self.current_xy = None
         self.dragging = False
+        self.pressed_on_geometry = False
         self._erase_outline()
 
     @staticmethod
@@ -128,39 +131,58 @@ class _RectangleTool:
         return int(pos[0]), int(pos[1])
 
     def _button(self, callback):
+        """Observar ambos extremos del clic sin romper el estado del visor.
+
+        NUNCA consumir solo MouseUp: FreeCAD necesita recibir DOWN y UP
+        para liberar correctamente su captura de ratón.
+        """
         event = callback.getEvent()
         if self.view is None or self.doc != App.ActiveDocument:
             self.stop()
             return
         if event.getButton() != coin.SoMouseButtonEvent.BUTTON1:
-            # Clic derecho y botón central deben pertenecer a FreeCAD.
             if event.getState() == coin.SoButtonEvent.DOWN:
                 self._reset_drag()
             return
         if event.getState() == coin.SoButtonEvent.DOWN:
             self._reset_drag()
-            self.start_xy = self._xy(event)
-            self.current_xy = self.start_xy
-            self.ctrl_down = bool(event.wasCtrlDown())
-            # IMPORTANTE: no consumir DOWN; FreeCAD debe seleccionar por clic.
+            # Si el usuario presiona sobre una cara, arista o punto, dejar
+            # TODO el gesto al selector habitual de FreeCAD.
+            picked = None
+            if hasattr(callback, "getPickedPoint"):
+                try:
+                    picked = callback.getPickedPoint()
+                except (RuntimeError, AttributeError):
+                    pass
+            self.pressed_on_geometry = picked is not None
+            if not self.pressed_on_geometry:
+                self.start_xy = self._xy(event)
+                self.current_xy = self.start_xy
+                self.ctrl_down = bool(event.wasCtrlDown())
             return
         if event.getState() != coin.SoButtonEvent.UP or self.start_xy is None:
             return
-        start = self.start_xy
-        drag = self.dragging
-        end = self._xy(event)
+        start, end = self.start_xy, self._xy(event)
+        drag, ctrl = self.dragging, self.ctrl_down
+        doc, view = self.doc, self.view
         self._reset_drag()
-        if not drag:
-            # Clic simple: FreeCAD gestiona vértices, aristas y caras.
-            # No hacerlo setHandled, ni llamar a nuestro selector.
+        if drag:
+            # Dejar que FreeCAD procese primero MouseUp y cierre su propio
+            # estado de selección; después añadir nuestros subelementos.
+            # No setHandled() en ningún evento del ratón.
+            QtCore.QTimer.singleShot(
+                0, lambda: self._finish_after_native(doc, view, start, end, ctrl)
+            )
+
+    def _finish_after_native(self, doc, view, start, end, ctrl):
+        """Completar el recuadro cuando la selección nativa terminó."""
+        if self.doc is not doc or self.view is not view or App.ActiveDocument is not doc:
             return
-        callback.setHandled()
         try:
+            self.ctrl_down = ctrl
             if self._resolve_catalog() is not None:
                 self._finish(start, end)
         except Exception as exc:
-            # Nunca abrir un QMessageBox modal desde un callback de Coin:
-            # puede dejar atrapada la captura del botón del ratón.
             App.Console.PrintError(
                 "Topografía: error en selección por recuadro: {}\n".format(exc)
             )
@@ -169,7 +191,7 @@ class _RectangleTool:
             )
 
     def _move(self, callback):
-        if self.start_xy is None or self.view is None:
+        if self.start_xy is None or self.view is None or self.pressed_on_geometry:
             return
         if self.doc != App.ActiveDocument:
             self.stop()
@@ -179,11 +201,11 @@ class _RectangleTool:
             if not self.dragging:
                 if math.hypot(pos[0] - self.start_xy[0],
                               pos[1] - self.start_xy[1]) < 6:
-                    return  # Movimiento mínimo = clic normal.
+                    return
                 self.dragging = True
             self.current_xy = pos
             self._draw_outline(self.start_xy, pos)
-            callback.setHandled()
+            # Permitir el movimiento nativo y la liberación del ratón.
         except Exception as exc:
             App.Console.PrintError(
                 "Topografía: error al dibujar recuadro: {}\n".format(exc)

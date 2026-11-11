@@ -65,23 +65,38 @@ def label_layout(points, closed=True):
     width = max(p.x for p in points) - min(p.x for p in points)
     height = max(p.y for p in points) - min(p.y for p in points)
     span = max(width, height, 0.1)
-    offset = max(0.08, min(1.4, span * 0.012))
+    # Cada rótulo se dimensiona en metros según la geometría, no en
+    # milímetros absolutos. Sin mínimos/máximos rígidos que conviertan una
+    # parcela pequeña en texto gigante o una calle larga en texto diminuto.
+    lengths = [math.hypot(
+        points[(i + 1) % len(points)].x - points[i].x,
+        points[(i + 1) % len(points)].y - points[i].y
+    ) for i in range(len(sides))]
+    shortest = min(lengths)
+    offset = min(span * .014, shortest * .08)
+    point_font = min(span * .030, shortest * .12)
+    center_font = min(span * .043, shortest * .20)
     labels = []
     for p in points:
         labels.append(dict(kind="point", text=p.name,
-                           x=p.x + offset, y=p.y + offset))
+                           x=p.x + offset, y=p.y + offset,
+                           font_m=point_font))
     for i, side in enumerate(sides):
         a, b = points[i], points[(i + 1) % len(points)]
         dx, dy = b.x - a.x, b.y - a.y
         length = math.hypot(dx, dy)
         nx, ny = -dy / length, dx / length
+        side_text = "{:.2f} m · {}".format(
+            side["horizontal_m"], side["rumbo"]
+        )
+        # Ajustar el texto al lado sobre el que está colocado.
+        side_font = min(span * .033, length / (max(1, len(side_text)) * .62))
         labels.append(dict(
             kind="side",
-            text="{:.2f} m · {}".format(
-                side["horizontal_m"], side["rumbo"]
-            ),
+            text=side_text,
             x=(a.x + b.x) / 2 + nx * offset,
             y=(a.y + b.y) / 2 + ny * offset,
+            font_m=side_font,
         ))
     if closed:
         x, y = _polygon_label_point(points)
@@ -89,7 +104,7 @@ def label_layout(points, closed=True):
             kind="area",
             text=["Área: {:.3f} m²".format(metrics["area_m2"]),
                   "Perímetro: {:.3f} m".format(metrics["perimeter_m"])],
-            x=x, y=y
+            x=x, y=y, font_m=center_font
         ))
     else:
         i = len(sides) // 2
@@ -98,6 +113,7 @@ def label_layout(points, closed=True):
             kind="length",
             text="Longitud total: {:.3f} m".format(metrics["longitud_m"]),
             x=(a.x + b.x) / 2,
-            y=(a.y + b.y) / 2 - 3 * offset
+            y=(a.y + b.y) / 2 - 3 * offset,
+            font_m=min(span * .043, sides[i]["horizontal_m"] / 18.0)
         ))
     return labels
