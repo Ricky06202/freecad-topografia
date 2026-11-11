@@ -54,6 +54,8 @@ def refresh_annotations(trace):
             font_mm * 1.05 if item["kind"] in ("area", "length") else
             font_mm * .75
         )
+        if hasattr(tag.ViewObject, "Justification"):
+            tag.ViewObject.Justification = "Center"
         if hasattr(tag.ViewObject, "TextColor"):
             tag.ViewObject.TextColor = (
                 (0.05, 0.27, 0.38) if item["kind"] != "area"
