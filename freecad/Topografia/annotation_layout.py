@@ -78,8 +78,9 @@ def label_layout(points, closed=True):
     center_font = min(span * .043, shortest * .20)
     labels = []
     for p in points:
+        point_offset = max(offset, point_font * .75)
         labels.append(dict(kind="point", text=p.name,
-                           x=p.x + offset, y=p.y + offset,
+                           x=p.x + point_offset, y=p.y + point_offset,
                            font_m=point_font))
     for i, side in enumerate(sides):
         a, b = points[i], points[(i + 1) % len(points)]
@@ -91,11 +92,12 @@ def label_layout(points, closed=True):
         )
         # Ajustar el texto al lado sobre el que está colocado.
         side_font = min(span * .033, length / (max(1, len(side_text)) * .62))
+        side_offset = max(offset, side_font * .85)
         labels.append(dict(
             kind="side",
             text=side_text,
-            x=(a.x + b.x) / 2 + nx * offset,
-            y=(a.y + b.y) / 2 + ny * offset,
+            x=(a.x + b.x) / 2 + nx * side_offset,
+            y=(a.y + b.y) / 2 + ny * side_offset,
             font_m=side_font,
         ))
     if closed:
