@@ -16,6 +16,8 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
         from freecad.Topografia import commands  # Registra comandos
         from freecad.Topografia import sight_commands  # Importador Sight
         from freecad.Topografia import point_commands  # Editor de puntos
+        from freecad.Topografia import trace_commands  # Abierto o cerrado
+        from freecad.Topografia import quick_commands  # Captura simplificada
         from freecad.Topografia import select_commands  # Selector normal del visor
         from freecad.Topografia import box_select_commands  # Recuadro de vértices
         from freecad.Topografia import tramo_commands  # Rumbos y distancias
@@ -25,6 +27,16 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
         from freecad.Topografia import earthwork_commands
         from freecad.Topografia import sheet_commands  # Planos
         from freecad.Topografia import ui_dock  # Explorador lateral
+        # Solo cuatro comandos a la vista. El resto permanece en el menú
+        # Topografía y en las acciones contextuales del explorador.
+        primary = [
+            "Topografia_Seleccionar",
+            "Topografia_Agregar",
+            "Topografia_Trazar",
+            "Topografia_GenerarPlano",
+        ]
+        self.appendToolbar("Topografía · Principal", primary)
+        self.appendMenu(["Topografía", "Principal"], primary)
         groups = {
             "Puntos": [
                 "Topografia_Seleccionar",
@@ -38,7 +50,8 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
                 "Topografia_EliminarPunto",
                 "Topografia_ConectarPuntos",
             ],
-            "Parcelas": [
+            "Trazados y parcelas": [
+                "Topografia_Trazar",
                 "Topografia_CrearParcela",
                 "Topografia_MedirParcela",
                 "Topografia_Subdividir",
@@ -57,7 +70,6 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
             ],
         }
         for name, commands_in_group in groups.items():
-            self.appendToolbar("Topografía · " + name, commands_in_group)
             self.appendMenu(["Topografía", name], commands_in_group)
 
     def Activated(self):
