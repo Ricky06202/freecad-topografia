@@ -26,6 +26,7 @@ class _RectangleTool:
         self.root = None
         self.overlay = None
         self.points_node = None
+        self.line_node = None
         self.callbacks = []
 
     def start(self):
@@ -70,7 +71,8 @@ class _RectangleTool:
         self.points_node = coin.SoCoordinate3()
         self.overlay.addChild(self.points_node)
         line = coin.SoLineSet()
-        line.numVertices.setValue(5)
+        line.numVertices.setValue(0)  # Sin recuadro hasta empezar a arrastrar
+        self.line_node = line
         self.overlay.addChild(line)
         self.root.addChild(self.overlay)
         try:
@@ -106,6 +108,7 @@ class _RectangleTool:
         self.root = None
         self.overlay = None
         self.points_node = None
+        self.line_node = None
         self.catalog = None
         self.doc = None
         self.start_xy = None
@@ -156,8 +159,7 @@ class _RectangleTool:
     def _key(self, callback):
         event = callback.getEvent()
         if (event.getState() == coin.SoButtonEvent.DOWN and
-                coin.SoKeyboardEvent.getKey(event) ==
-                coin.SoKeyboardEvent.ESCAPE):
+                event.getKey() == coin.SoKeyboardEvent.ESCAPE):
             self.stop()
             Gui.getMainWindow().statusBar().showMessage(
                 "Selección normal activada", 3000
@@ -172,10 +174,11 @@ class _RectangleTool:
         self.points_node.point.setValues(
             0, len(world), [(p.x, p.y, p.z + 1) for p in world]
         )
+        self.line_node.numVertices.setValue(5)
 
     def _erase_outline(self):
-        if self.points_node is not None:
-            self.points_node.point.setValues(0, 5, [(0, 0, 0)] * 5)
+        if self.line_node is not None:
+            self.line_node.numVertices.setValue(0)
 
     def _finish(self, a, b):
         if self.doc != App.ActiveDocument:
