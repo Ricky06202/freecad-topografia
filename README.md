@@ -1,10 +1,26 @@
 # Topografía para FreeCAD
 
-Banco de trabajo (Workbench) para dibujar parcelas con coordenadas y consultar área, perímetro y hectáreas. Interfaz en español; proyecto piloto para uso personal.
+Banco de trabajo (Workbench) para dibujar líneas abiertas (calles, caminos y ejes), parcelas cerradas y consultar longitudes, área y perímetro. Interfaz en español; proyecto piloto para uso personal.
 
-> Estado: prototipo 0.7. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+> Estado: prototipo 0.8. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
 
-## Funciones implementadas (0.7; cambios nuevos pendientes de prueba en FreeCAD)
+## Trazar calles, caminos o parcelas — Topografía 0.8
+
+El banco de trabajo ahora permite **trazados abiertos**. No hace falta cerrar la figura ni inventar un área si solo quieres marcar un borde de calle, un eje, un sendero, un cerco o una alineación. También siguen disponibles las **parcelas cerradas**.
+
+**Barra principal reducida a cuatro iconos:** **Seleccionar · Añadir puntos · Trazar · Generar plano**. Las demás funciones se conservan en **Topografía → Puntos / Trazados y parcelas / Terreno / Planos** y algunas acciones contextuales en el panel. **Añadir puntos** permite elegir coordenadas, tramos, clics sobre el dibujo o importar Sight, sin cuatro botones visibles.
+
+1. Introduce al menos dos estaciones mediante **Añadir puntos**.
+2. Selecciona los vértices en la vista 3D usando clic y Ctrl+clic, o selección por recuadro.
+3. Pulsa **Trazar**. En la ventana, elige **Línea abierta** para una calle o **Parcela cerrada** para un terreno, y organiza los puntos en el orden correcto arrastrando filas o usando **Subir/Bajar**.
+4. Al confirmar **Línea abierta**, FreeCAD construye una polilínea con los segmentos **P1→P2→...→Pn**, **sin volver a P1**. Solo calcula **longitud horizontal y distancias/rumbos de cada tramo**; no muestra un área ficticia.
+5. Para los dos bordes de una calle, crea **dos trazados abiertos independientes**, uno por cada lado, usando los puntos correspondientes. Se pueden guardar múltiples trazados en el mismo documento.
+6. Si corriges las coordenadas de una estación vinculada, el trazado se actualiza y vuelve a calcular su longitud. Eliminar vértices usados por trazados sigue protegido.
+7. Selecciona una línea o parcela y pulsa **Generar plano**. El PDF/SVG de línea abierta no dibuja un cierre y muestra longitud total; el DXF genera una `LWPOLYLINE` con bandera abierta (`70=0`), en metros. DWG sigue requiriendo un conversor externo configurado.
+
+**Importante:** el nuevo flujo 0.8 se verificó con pruebas automáticas de geometría/exportación y revisión de código, **no con un FreeCAD real**. La impresión a escala y las interacciones deben comprobarse en tu máquina antes de entregar documentación profesional. Las alineaciones actualmente usan segmentos rectos; curvas, arcos y anchos de vía paramétricos aún no están implementados.
+
+## Funciones implementadas (0.8; cambios nuevos pendientes de prueba en FreeCAD)
 
 - **Selección rectangular (0.7):** icono **Seleccionar por recuadro** en barra Puntos y panel. Arrastra para abarcar varios vértices del levantamiento visible (en vista superior). Mantén **Ctrl mientras arrastras** para sumar a la selección actual. Pulsa **Esc** o el icono **Seleccionar** para terminar el modo recuadro. No depende del comando nativo de selección por caja de FreeCAD 1.0/1.1, que no selecciona vértices en todos los casos.
 - **Orden antes de conectar (0.7):** como el rectángulo selecciona un conjunto sin orden de recorrido, **Conectar puntos** abre una lista donde puedes mover arriba/abajo o arrastrar los puntos para definir el perímetro. Valida cruces y geometría antes de crear la parcela.
