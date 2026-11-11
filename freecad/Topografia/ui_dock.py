@@ -181,6 +181,11 @@ class ExplorerPanel(QtWidgets.QDockWidget):
 
         metrics_tab = QtWidgets.QWidget()
         metrics_layout = QtWidgets.QVBoxLayout(metrics_tab)
+        self.current_trace = QtWidgets.QLabel(
+            "Selecciona una línea o parcela en TRAZADOS para ver los cálculos."
+        )
+        self.current_trace.setWordWrap(True)
+        metrics_layout.addWidget(self.current_trace)
         metrics = QtWidgets.QGroupBox("Cálculos del trazado seleccionado")
         grid = QtWidgets.QFormLayout(metrics)
         self.area_value = QtWidgets.QLabel("—")
@@ -324,6 +329,9 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         if chosen_catalog in catalogs:
             self.catalogs.setCurrentRow(catalogs.index(chosen_catalog))
 
+        self.current_trace.setText(
+            "Selecciona una línea o parcela en TRAZADOS para ver los cálculos."
+        )
         self.area_value.setText("Selecciona un trazado")
         self.ha_value.setText("—")
         self.perimeter_caption.setText("Perímetro:")
@@ -371,6 +379,9 @@ class ExplorerPanel(QtWidgets.QDockWidget):
             )
 
         if chosen_parcel is not None:
+            self.current_trace.setText(
+                "Trazado: {}".format(chosen_parcel.Label)
+            )
             try:
                 points = _points(chosen_parcel)
                 is_open = getattr(chosen_parcel, "TipoTrazado", "") == "Abierto"

@@ -74,6 +74,7 @@ class BoxSelectionContractTests(unittest.TestCase):
 
         panel = types.ModuleType("freecad.Topografia.ui_dock")
         panel.refresh_panel = lambda: None
+        panel.active_catalog = lambda: None
         bridge = types.ModuleType("freecad.Topografia.selection_bridge")
         bridge.mark_box_selection = lambda cat: self.messages.append(("box", cat.Name))
         style = types.ModuleType("freecad.Topografia.point_style")
