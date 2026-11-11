@@ -92,6 +92,15 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
         box_select_commands.stop_active()
         ui_dock.hide_panel()
 
+    def ContextMenu(self, recipient):
+        """Agregar acciones al clic derecho nativo de FreeCAD (visor/árbol)."""
+        from freecad.Topografia.context_actions import actions_for_selection
+        label, commands = actions_for_selection(
+            FreeCADGui.Selection.getSelectionEx()
+        )
+        if commands:
+            self.appendContextMenu(label, list(commands))
+
     def GetClassName(self):
         return "Gui::PythonWorkbench"
 

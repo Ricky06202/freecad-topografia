@@ -38,7 +38,7 @@ class BoxSelectionContractTests(unittest.TestCase):
     def setUp(self):
         self.doc = types.SimpleNamespace(Name="D")
         self.catalog = types.SimpleNamespace(
-            Name="Puntos", Document=self.doc,
+            Name="Puntos", Document=self.doc, PuntosJSON="[]",
             Shape=types.SimpleNamespace(Vertexes=[
                 types.SimpleNamespace(Point=(5, 5, 0)),
                 types.SimpleNamespace(Point=(15, 15, 0)),

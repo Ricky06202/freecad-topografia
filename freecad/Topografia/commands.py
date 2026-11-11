@@ -174,7 +174,7 @@ class MeasureParcel:
     def GetResources(self):
         return {
             "Pixmap": icon_path("medir-parcela"),
-            "MenuText": "Medir parcela",
+            "MenuText": "Ver mediciones",
             "ToolTip": "Medir parcela\nÁrea, hectáreas y perímetro horizontal",
             "StatusTip": "Consultar mediciones de la parcela seleccionada",
         }
