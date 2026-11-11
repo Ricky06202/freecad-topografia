@@ -1,73 +1,104 @@
-"""Etiquetas visibles en el visor de FreeCAD mediante objetos Draft Text.
+"""Mediciones directamente sobre el dibujo: distancias, rumbos y área.
 
-Los rótulos son objetos del documento; pueden ocultarse en el árbol.
-Solo se crean al pedirlos para evitar saturar planos grandes.
+Los rótulos Draft son visibles, editables y permanecen asociados al trazado.
+Se pueden mostrar/ocultar sin modificar los puntos originales.
 """
-import math
-
 import FreeCAD as App
 import FreeCADGui as Gui
 from PySide import QtWidgets
 
 from .commands import _selected_parcel, _points
 from .project import ensure_project, position_for
-from .survey_math import parcel_edges
+from .annotation_layout import label_layout
 from .ui_resources import icon_path
 
 
-def refresh_annotations(parcel):
-    if not hasattr(parcel, "GrupoRotulos") or not parcel.GrupoRotulos:
+def refresh_annotations(trace):
+    """Regenera todos los rótulos tras mover/editar estaciones."""
+    group = getattr(trace, "GrupoRotulos", None)
+    if group is None:
         return
     import Draft
-    doc = parcel.Document
-    group = parcel.GrupoRotulos
-    points = _points(parcel)
+    doc = trace.Document
+    points = _points(trace)
     if len(points) > 150:
-        raise ValueError("Solo se rotulan automáticamente hasta 150 vértices")
-    stats = parcel_edges(points)
+        raise ValueError(
+            "Para no saturar el visor, se admiten hasta 150 estaciones rotuladas"
+        )
+    is_open = getattr(trace, "TipoTrazado", "") == "Abierto"
+    labels = label_layout(points, closed=not is_open)
     project = ensure_project(doc, points[0])
-    bounds = max(
+    span = max(
         max(p.x for p in points) - min(p.x for p in points),
         max(p.y for p in points) - min(p.y for p in points),
+        0.1
     )
-    label_m = max(.25, min(4.0, bounds * .015))
-    # Eliminar rótulos anteriores dentro de la transacción actual.
-    for obj in list(group.Group):
-        doc.removeObject(obj.Name)
-    for i, point in enumerate(points):
-        origin = position_for(project, point)
-        label_pos = App.Vector(
-            origin.x + label_m * 700,
-            origin.y + label_m * 700,
-            0
-        )
-        tag = Draft.make_text(point.name, placement=label_pos)
+    font_mm = max(180, min(1400, span * 8))
+    was_visible = bool(group.ViewObject.Visibility)
+    for old in list(group.Group):
+        doc.removeObject(old.Name)
+    for item in labels:
+        point = type(points[0])("label", item["x"], item["y"], 0)
+        position = position_for(project, point)
+        pos = App.Vector(position.x, position.y, max(1, font_mm * 0.1))
+        tag = Draft.make_text(item["text"], placement=pos)
         if tag is None:
-            raise RuntimeError("No se pudo generar el texto del vértice")
-        tag.Label = "Vértice " + point.name
-        tag.ViewObject.FontSize = label_m * 1000.0
+            raise RuntimeError("No se pudo dibujar la etiqueta del trazado")
+        tag.Label = {
+            "point": "Punto",
+            "side": "Tramo",
+            "area": "Área y perímetro",
+            "length": "Longitud total"
+        }[item["kind"]] + " · " + trace.Label
+        tag.ViewObject.FontSize = (
+            font_mm * 1.05 if item["kind"] in ("area", "length") else
+            font_mm * .75
+        )
+        tag.ViewObject.TextColor = (
+            (0.05, 0.27, 0.38) if item["kind"] != "area"
+            else (0.03, 0.4, 0.23)
+        )
         group.addObject(tag)
-
-        next_point = points[(i + 1) % len(points)]
-        midpoint = App.Vector(
-            (point.x + next_point.x) / 2 - project.OrigenEste,
-            (point.y + next_point.y) / 2 - project.OrigenNorte, 0
-        )
-        side_pos = App.Vector(
-            midpoint.x * 1000,
-            midpoint.y * 1000 + label_m * 700, 0
-        )
-        side = stats[i]
-        tag_side = Draft.make_text(
-            "{:.2f} m · {}".format(side["horizontal_m"], side["rumbo"]),
-            placement=side_pos,
-        )
-        if tag_side is None:
-            raise RuntimeError("No se pudo generar el texto del lindero")
-        tag_side.Label = "Tramo {}–{}".format(side["inicio"], side["fin"])
-        tag_side.ViewObject.FontSize = label_m * 650.0
-        group.addObject(tag_side)
     doc.recompute()
+    group.ViewObject.Visibility = was_visible
+
+
+def show_or_toggle_measurements(trace, toggle=True):
+    """Muestra u oculta etiquetas, con transacción y deshacer de FreeCAD."""
+    doc = trace.Document
+    group = getattr(trace, "GrupoRotulos", None)
+    if group is not None and toggle:
+        doc.openTransaction("Ocultar/mostrar mediciones")
+        try:
+            group.ViewObject.Visibility = not group.ViewObject.Visibility
+            doc.commitTransaction()
+            return bool(group.ViewObject.Visibility)
+        except Exception:
+            doc.abortTransaction()
+            raise
+    doc.openTransaction("Mostrar mediciones sobre el dibujo")
+    try:
+        if not hasattr(trace, "GrupoRotulos"):
+            trace.addProperty(
+                "App::PropertyLink", "GrupoRotulos", "Topografia"
+            )
+        if not trace.GrupoRotulos:
+            group = doc.addObject(
+                "App::DocumentObjectGroup", "RotulosTopografia"
+            )
+            group.Label = "Mediciones · " + trace.Label
+            project = doc.getObject("ProyectoTopografia")
+            if project is not None:
+                project.addObject(group)
+            trace.GrupoRotulos = group
+        if hasattr(trace.GrupoRotulos, "ViewObject"):
+            trace.GrupoRotulos.ViewObject.Visibility = True
+        refresh_annotations(trace)
+        doc.commitTransaction()
+        return True
+    except Exception:
+        doc.abortTransaction()
+        raise
 
 
 class AnnotateParcel:
@@ -75,39 +106,22 @@ class AnnotateParcel:
         return {
             "Pixmap": icon_path("etiquetar"),
             "MenuText": "Mostrar etiquetas topográficas",
-            "ToolTip": "Etiquetar parcela\nVer nombres, rumbos y distancias en el dibujo",
-            "StatusTip": "Crear o actualizar rótulos Draft asociados a la parcela",
+            "ToolTip": "Etiquetar trazado\nDistancias y rumbos directamente en el dibujo",
+            "StatusTip": "Crear o actualizar etiquetas de líneas y parcelas",
         }
 
     def IsActive(self):
         return App.ActiveDocument is not None
 
     def Activated(self):
-        parcel = _selected_parcel()
-        if parcel is None:
+        trace = _selected_parcel()
+        if trace is None:
             return
-        doc = parcel.Document
-        doc.openTransaction("Rotular parcela")
         try:
-            if not hasattr(parcel, "GrupoRotulos"):
-                parcel.addProperty(
-                    "App::PropertyLink", "GrupoRotulos", "Topografia"
-                )
-            if not parcel.GrupoRotulos:
-                group = doc.addObject(
-                    "App::DocumentObjectGroup", "RotulosTopografia"
-                )
-                group.Label = "Rótulos · " + parcel.Label
-                project = doc.getObject("ProyectoTopografia")
-                if project:
-                    project.addObject(group)
-                parcel.GrupoRotulos = group
-            refresh_annotations(parcel)
-            doc.commitTransaction()
+            show_or_toggle_measurements(trace, toggle=False)
         except (RuntimeError, ValueError, ImportError) as exc:
-            doc.abortTransaction()
             QtWidgets.QMessageBox.warning(
-                Gui.getMainWindow(), "No se pueden crear rótulos", str(exc)
+                Gui.getMainWindow(), "Error de mediciones", str(exc)
             )
 
 
