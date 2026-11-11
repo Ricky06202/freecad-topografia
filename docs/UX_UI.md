@@ -122,3 +122,18 @@ La acción **Generar plano** abre un formulario editable de título, elaborado p
 - **Compatibilidad:** los marcadores del catálogo se dibujan como vértices de un `Part::Feature`. Las pruebas de proyección y captura usan dobles sintéticos. Hay que verificar el paso Coin→FreeCAD en la instalación real; no hay GUI FreeCAD en GitHub Actions.
 
 **Aceptación manual imprescindible de 0.7:** tras actualizar y reiniciar FreeCAD, crear cuatro puntos de un rectángulo de 10×5 m, aumentar tamaño de marcador a 32 px, seleccionar los cuatro con el recuadro y confirmar el número en la tabla. Pulsar Conectar, ordenar P1→P2→P3→P4 y verificar 50 m² / 30 m. Esc debe devolver el modo clic; Ctrl+arrastrar debe mantener puntos previos y añadir nuevos. Si el recuadro no aparece, adjuntar captura y texto de la **Vista de informes** de FreeCAD para corregir el adaptador Pivy/Qt sin suponer que la GUI pasó.
+
+## Decisión 0.8 — calles abiertas, trazados independientes y menos iconos
+
+**Corrección del usuario:** una calle no siempre forma un recinto. A veces el profesional solamente necesita delimitar ambos bordes, dibujar el eje o representar varios segmentos sin cerrar un polígono. La antigua etiqueta **Crear parcela** no refleja este caso de uso.
+
+**Flujo principal aprobado:** barra con solo **Seleccionar**, **Añadir puntos**, **Trazar** y **Generar plano**. «Añadir puntos» agrupa coordenadas, tramos, clics e importación; «Trazar» presenta dos posibilidades con lenguaje cotidiano:
+
+- **Línea abierta:** requiere dos o más estaciones, dibuja una polilínea sin tramo final de retorno, muestra **longitud total, tramos y rumbos**, pero no calcula ni presenta área o perímetro.
+- **Parcela cerrada:** requiere tres o más estaciones, añade automáticamente el segmento final y calcula **área, hectáreas, perímetro y tramos**.
+
+El asistente de Trazar permite ordenar los puntos antes de guardar, sin añadir botones adicionales. Los bordes opuestos de una calle se guardan como **dos líneas abiertas independientes**. Los trazados se vinculan al catálogo para recalcularse al corregir sus coordenadas y protegen frente al borrado accidental de estaciones utilizadas.
+
+**Planos:** SVG/PDF muestran un segmento abierto (sin comando de cierre Z), norte, cajetín y longitud; DXF escribe `LWPOLYLINE` con bandera `70=0`. Las parcelas conservan `70=1` y sus mediciones. Los menús secundarios mantienen herramientas COGO, terrenos y mediciones avanzadas, sin saturar la barra.
+
+**Verificación necesaria:** pruebas unitarias de calle abierta con 2 y 3 puntos, geometría/longitud, SVG válido sin cierre, DXF sin bandera cerrada y regresión de parcelas; GitHub Actions aprobado no sustituye la prueba de GUI FreeCAD. Comprobar manualmente que se crean dos bordes sin área, se pueden editar y exportar, y la barra solo presenta los cuatro iconos principales. **Limitaciones:** los trazos son rectilíneos; aún no se generan anchos de calle, offsets o curvas de alineación automáticos.
