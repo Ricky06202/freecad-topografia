@@ -2,9 +2,13 @@
 
 Banco de trabajo (Workbench) para dibujar parcelas con coordenadas y consultar área, perímetro y hectáreas. Interfaz en español; proyecto piloto para uso personal.
 
-> Estado: prototipo 0.6. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **El rediseño de selección y la entrada por tramos de 0.6 todavía requieren prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+> Estado: prototipo 0.7. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
 
-## Funciones implementadas (0.6; cambios nuevos pendientes de prueba en FreeCAD)
+## Funciones implementadas (0.7; cambios nuevos pendientes de prueba en FreeCAD)
+
+- **Selección rectangular (0.7):** icono **Seleccionar por recuadro** en barra Puntos y panel. Arrastra para abarcar varios vértices del levantamiento visible (en vista superior). Mantén **Ctrl mientras arrastras** para sumar a la selección actual. Pulsa **Esc** o el icono **Seleccionar** para terminar el modo recuadro. No depende del comando nativo de selección por caja de FreeCAD 1.0/1.1, que no selecciona vértices en todos los casos.
+- **Orden antes de conectar (0.7):** como el rectángulo selecciona un conjunto sin orden de recorrido, **Conectar puntos** abre una lista donde puedes mover arriba/abajo o arrastrar los puntos para definir el perímetro. Valida cruces y geometría antes de crear la parcela.
+- **Marcadores grandes (0.7):** cada punto nuevo se dibuja con un símbolo de **24 px** y color turquesa. En el explorador lateral, **Tamaño de puntos** permite elegir 8–40 px y aplica el cambio a levantamientos existentes. No cambia las coordenadas ni altera la preferencia global de selección de FreeCAD.
 
 - **Selección nativa (0.6):** el modo normal es **Seleccionar**. Clic en un vértice del dibujo, Ctrl+clic para añadir otros; las operaciones Editar, Eliminar, Conectar y Reubicar toman esta selección directamente del visor FreeCAD. Se conserva el orden de selección de vértices para conectar una parcela. La selección puede ser de varios puntos del mismo levantamiento, no de varios catálogos.
 - **Tabla completa y cómoda (0.6):** panel lateral con pestañas **Puntos** y **Mediciones**; QTableView muestra **todas** las estaciones y permite desplazarse, sin cortar después de 250. Los puntos que seleccionas en el dibujo quedan resaltados en la tabla. No necesitas usar la tabla para ejecutar acciones.
@@ -59,6 +63,17 @@ P4,500000,900005,0
 **Resultado:** 50 m², 0.005 ha y 30 m de perímetro. Introduce los vértices en orden alrededor de la parcela, sin cruzar lados; no es necesario repetir el primer punto al final.
 
 También se admiten `P1;500000;900000;0`, `500000,900000` o `500000 900000 0`. Usa punto como separador decimal y evita separadores de miles.
+
+## Selección rectangular y marcadores más visibles (0.7)
+
+1. Abre un documento y muestra un levantamiento que contenga estaciones.
+2. En la barra **Puntos**, pulsa el icono de **rectángulo punteado** (Seleccionar por recuadro).
+3. En vista superior, mantén presionado el **botón izquierdo**, arrastra sobre los puntos que quieras y suelta. Verás los vértices seleccionados y el número en el panel; **Ctrl+arrastrar** permite sumar otro grupo.
+4. Pulsa **Conectar puntos**. Ordena los vértices usando **Subir**, **Bajar** o arrastrando los elementos en la lista; confirma para crear la parcela. Si el orden cruza lados, el diálogo pedirá corregirlo.
+5. Presiona **Esc** o usa el icono **Seleccionar** para volver a los clics individuales.
+6. Para hacer más fácil pulsar los vértices, aumenta **Tamaño de puntos** en el explorador, por ejemplo a **28 o 32 px**. El ajuste se conserva en la instalación de FreeCAD.
+
+**Importante:** el recuadro trabaja solo con los vértices del levantamiento activo en el plano y todavía hay que comprobar su interacción con las herramientas de navegación de FreeCAD en la computadora del usuario.
 
 ## Selección y tabla de estaciones (0.6)
 
