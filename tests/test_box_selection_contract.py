@@ -69,6 +69,8 @@ class BoxSelectionContractTests(unittest.TestCase):
         pyside = types.ModuleType("PySide")
         pyside.QtWidgets = types.SimpleNamespace()
         coin = types.ModuleType("coin")
+        coin.SoMouseButtonEvent = types.SimpleNamespace(BUTTON1=1, BUTTON2=2)
+        coin.SoButtonEvent = types.SimpleNamespace(DOWN="DOWN", UP="UP")
         pivy = types.ModuleType("pivy")
         pivy.coin = coin
 
@@ -122,21 +124,61 @@ class BoxSelectionContractTests(unittest.TestCase):
         self.assertEqual(self.selection.selected,
                          ["Vertex1", "Vertex2", "Vertex3", "Vertex4"])
 
-    def test_default_tool_click_selects_nearest_point(self):
-        self.tool.ctrl_down = False
-        self.tool._click((6, 5))
-        self.assertEqual(self.selection.selected, ["Vertex1"])
-        self.tool._click((26, 25))
-        self.assertEqual(self.selection.selected, ["Vertex3"])
+    def event(self, button=1, state="DOWN", pos=(5, 5), ctrl=False):
+        obj = types.SimpleNamespace(
+            getButton=lambda: button,
+            getState=lambda: state,
+            getPosition=lambda: types.SimpleNamespace(getValue=lambda: pos),
+            wasCtrlDown=lambda: ctrl,
+        )
+        marked = []
+        callback = types.SimpleNamespace(
+            getEvent=lambda: obj,
+            setHandled=lambda: marked.append(True),
+        )
+        return callback, marked
 
-    def test_default_tool_ctrl_click_toggles_points(self):
-        self.tool.ctrl_down = False
-        self.tool._click((5, 5))
-        self.tool.ctrl_down = True
-        self.tool._click((15, 15))
-        self.assertEqual(self.selection.selected, ["Vertex1", "Vertex2"])
-        self.tool._click((5, 5))
-        self.assertEqual(self.selection.selected, ["Vertex2"])
+    def test_plain_click_leaves_events_for_freecad(self):
+        down, d_handled = self.event()
+        up, u_handled = self.event(state="UP")
+        self.tool._button(down)
+        self.tool._button(up)
+        self.assertEqual(d_handled, [])
+        self.assertEqual(u_handled, [])
+        self.assertEqual(self.selection.selected, [])
+        # La selección nativa es la responsable de añadir el objeto.
+        self.selection.addSelection("D", "Puntos", "Vertex1")
+        self.assertEqual(self.selection.selected, ["Vertex1"])
+
+    def test_small_movement_is_still_a_click(self):
+        self.tool._button(self.event(pos=(5, 5))[0])
+        self.tool._move(self.event(pos=(9, 8))[0])
+        up, handled = self.event(state="UP", pos=(9, 8))
+        self.tool._button(up)
+        self.assertEqual(handled, [])
+        self.assertFalse(self.tool.dragging)
+
+    def test_true_drag_selects_points_and_resets(self):
+        self.tool._draw_outline = lambda a, b: None
+        self.tool._button(self.event(pos=(0, 0))[0])
+        drag, marked = self.event(pos=(30, 30))
+        self.tool._move(drag)
+        self.assertTrue(self.tool.dragging)
+        self.assertEqual(marked, [True])
+        up, marked_up = self.event(state="UP", pos=(30, 30))
+        self.tool._button(up)
+        self.assertEqual(marked_up, [True])
+        self.assertEqual(self.selection.selected,
+                         ["Vertex1", "Vertex2", "Vertex3"])
+        self.assertFalse(self.tool.dragging)
+        self.assertIsNone(self.tool.start_xy)
+
+    def test_right_click_is_native_and_cancels_pending_drag(self):
+        self.tool._button(self.event(pos=(5, 5))[0])
+        right, handled = self.event(button=2)
+        self.tool._button(right)
+        self.assertIsNone(self.tool.start_xy)
+        self.assertEqual(handled, [])
 
     def test_empty_rectangle_clears_without_error(self):
         self.selection.selected = ["Vertex1"]
