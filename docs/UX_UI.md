@@ -110,3 +110,15 @@ La acción **Generar plano** abre un formulario editable de título, elaborado p
 7. Con varias parcelas y catálogos, probar selección mezclada: no se deben conectar puntos de catálogos incompatibles sin aviso.
 
 **Límites pendientes:** no se ha probado la GUI de 0.6 dentro de FreeCAD. El reconocimiento nativo de subelementos `VertexN` debe confirmarse en la versión instalada del usuario y con proyectos importados. No hay herramientas catastrales certificadas ni transformación CRS implícita.
+
+## Topografía 0.7 — recuadro de selección y puntos más grandes
+
+**Motivación:** el usuario comprobó que los puntos eran demasiado pequeños para seleccionar cómodamente y pidió la herramienta CAD clásica de selección rectangular. Para FreeCAD 1.0–1.1 se implementó selección propia de subelementos `VertexN` usando Coin/Pivy; el comando nativo `Std_BoxElementSelection` de esas versiones no garantiza selección de vértices.
+
+- **Selección predeterminada:** continúa siendo el cursor normal de FreeCAD para clic y Ctrl+clic. La **selección por recuadro** es un modo temporal explícito (icono de rectángulo punteado) que trabaja en vista superior. Arrastrar selecciona vértices cuyo centro proyectado queda dentro; **Ctrl+arrastrar** añade más. **Esc** o Seleccionar desactiva el modo.
+- **Orden del polígono:** la selección por recuadro es un **conjunto de estaciones**, no el orden topológico. Al pulsar Conectar aparece una lista con arrastrar y controles Subir/Bajar. El usuario confirma el recorrido; se comprueban autocruces y área no nula antes de crear el objeto.
+- **Marcadores grandes:** `ViewObject.PointSize=24` px por defecto, y un control `Tamaño de puntos` dentro del panel lateral permite cambiar entre 8 y 40 px. Se aplica a todos los catálogos del documento activo y se conserva en las preferencias privadas del complemento, sin alterar tamaño real/coordenadas.
+- **Seguridad:** limita una selección rectangular a 2.500 puntos simultáneos para no bloquear Qt con un número masivo de selecciones individuales. No se eliminan puntos ni se crea una parcela automáticamente por arrastrar.
+- **Compatibilidad:** los marcadores del catálogo se dibujan como vértices de un `Part::Feature`. Las pruebas de proyección y captura usan dobles sintéticos. Hay que verificar el paso Coin→FreeCAD en la instalación real; no hay GUI FreeCAD en GitHub Actions.
+
+**Aceptación manual imprescindible de 0.7:** tras actualizar y reiniciar FreeCAD, crear cuatro puntos de un rectángulo de 10×5 m, aumentar tamaño de marcador a 32 px, seleccionar los cuatro con el recuadro y confirmar el número en la tabla. Pulsar Conectar, ordenar P1→P2→P3→P4 y verificar 50 m² / 30 m. Esc debe devolver el modo clic; Ctrl+arrastrar debe mantener puntos previos y añadir nuevos. Si el recuadro no aparece, adjuntar captura y texto de la **Vista de informes** de FreeCAD para corregir el adaptador Pivy/Qt sin suponer que la GUI pasó.
