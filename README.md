@@ -2,7 +2,17 @@
 
 Banco de trabajo (Workbench) para dibujar líneas abiertas (calles, caminos y ejes), parcelas cerradas y consultar longitudes, área y perímetro. Interfaz en español; proyecto piloto para uso personal.
 
-> Estado: prototipo 0.9.4. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+> Estado: prototipo 0.9.5. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+
+## Añadir puntos por rumbo, dirección, sentido y distancia — Topografía 0.9.5
+
+**Error corregido:** al elegir **Añadir puntos → Por tramos (rumbo/azimut y distancia)** en un levantamiento nuevo, se abría primero el formulario genérico de coordenadas (`PointDialog`), por lo que parecía que ambas opciones conducían al mismo formulario. El comando sí estaba correctamente enlazado, pero la interfaz confundía al usuario.
+
+**Nuevo flujo de un solo formulario:** la opción Por tramos abre directamente la ventana **«Rumbo y distancia»**, incluso sin puntos existentes. Si es el primer tramo, esa misma ventana muestra arriba el **punto inicial (nombre, Este, Norte, Cota)** y debajo los datos del **punto siguiente**. Después se elige modo **Rumbo cuadrantal** (Dirección Norte/Sur, ángulo de 0–90° y Sentido Este/Oeste) o **Azimut** (0–360°). Se introduce **distancia horizontal en metros**, **desnivel opcional** y nota; la vista previa calcula automáticamente las coordenadas resultantes. No se inventa silenciosamente un origen georreferenciado; el primer punto requiere que el usuario indique Este y Norte. Los botones **Añadir tramo** y **Añadir y continuar** encadenan estaciones desde el último punto creado, sin reabrir el formulario general. También funciona cuando ya hay estaciones: usa el punto seleccionado o, si no hay selección, el último.
+
+**Datos y seguridad:** los cálculos existentes `point_from_tramo` y `direction_to_azimuth` se conservan; se validan ángulos, distancias, nombres y coordenadas duplicadas antes de la transacción. La cancelación no crea un documento ni modifica puntos. Se conserva el registro de origen, rumbo/azimut, distancia y desnivel en la descripción del punto.
+
+**Pruebas:** `tests/test_tramo_ui_flow.py` simula la primera creación, un catálogo existente, la opción del botón Añadir y la composición de direcciones/sentidos; además permanecen las pruebas del cálculo COGO. GitHub Actions valida Python y las pruebas de la ruta sin abrir la interfaz real. **Prueba manual pendiente en FreeCAD 1.1:** abrir Añadir puntos → Por tramos sin levantamiento, comprobar que aparecen ambos grupos en **una sola ventana**, crear P1 (500000,900000) y P2 por N 90° E con 10 m (resultado 500010,900000), pulsar Añadir y continuar para agregar P3, probar S 45° O y cancelar sin cambios.
 
 ## Corrección del ratón y escalado proporcional de etiquetas — Topografía 0.9.4
 
