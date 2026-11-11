@@ -23,6 +23,13 @@ class NativeContextMenuTests(unittest.TestCase):
             "Topografia_EliminarPunto"
         ))
 
+    def test_nested_vertex_names_supported(self):
+        title, commands = actions_for_selection([
+            item(self.catalog, "Group.Vertex2")
+        ])
+        self.assertIn("Punto", title)
+        self.assertIn("Topografia_EditarPunto", commands)
+
     def test_many_points_have_trace_delete(self):
         label, commands = actions_for_selection([
             item(self.catalog, "Vertex1", "Vertex2", "Vertex3"),

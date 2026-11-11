@@ -147,3 +147,11 @@ El asistente de Trazar permite ordenar los puntos antes de guardar, sin añadir 
 **Sin multiplicar botones:** se agregan campos opcionales al asistente **Generar plano** existente, no un quinto botón en la barra principal de cuatro. PDF incluye anexos paginados de todas las coordenadas y tramos restantes; SVG solo portada con aviso si hay anexos; DXF/DWG incluye cuadros completos como entidades editables y línea para firma.
 
 **Limitaciones:** diseñador de plantilla no homologado y rumbos/azimuts planos de coordenadas proyectadas; no validar rumbos magnéticos ni CRS sin dato explícito. Firma y sello nunca se rellenan ni se simulan. La interfaz y PDF deben probarse en FreeCAD instalado del usuario.
+
+## Decisión 0.9.1 — selección y menú contextual nativo
+
+El usuario comprobó la existencia de «Mediciones» y pidió que **esa pestaña se muestre por defecto**. La selección **por recuadro** será el modo de trabajo predeterminado, compatible con clic simple y Ctrl+clic en vértices. Se añadió una mejora posterior: **menú de clic derecho sobre la selección**, con acciones frecuentes para reducir la necesidad de usar las barras.
+
+El Workbench implementa `ContextMenu(recipient)` y consulta la selección real de FreeCAD. Si hay un solo vértice de catálogo ofrece **Editar · Reubicar · Eliminar**; con varios del mismo levantamiento ofrece **Trazar · Eliminar**; con una línea/parcela ofrece **Ver mediciones · Generar plano**. Una selección mixta o de objetos sin vértices evita acciones destructivas ambiguas. No agrega más botones visibles. El borrado mantiene su diálogo de confirmación.
+
+**Pruebas pendientes en GUI:** verificar que el menú aparece con clic derecho en el visor de FreeCAD 1.1 después de seleccionar un vértice, que no se pierde la selección, que mover abre el modo de reubicación y al terminar vuelve al selector por recuadro, y que el panel se abre en «Mediciones». También probar el menú sobre una calle abierta y desde el árbol de objetos. La CI sin FreeCAD valida la clasificación de acciones y la presencia de `ContextMenu`, pero no la integración visual real.

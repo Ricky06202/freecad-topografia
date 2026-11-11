@@ -2,7 +2,21 @@
 
 Banco de trabajo (Workbench) para dibujar líneas abiertas (calles, caminos y ejes), parcelas cerradas y consultar longitudes, área y perímetro. Interfaz en español; proyecto piloto para uso personal.
 
-> Estado: prototipo 0.9. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+> Estado: prototipo 0.9.1. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+
+## Selección y clic derecho familiar — Topografía 0.9.1
+
+La herramienta principal de selección es **Seleccionar por recuadro**, que permite tanto clic individual como arrastrar un rectángulo para incluir varios puntos. La pestaña **Mediciones** se muestra de forma predeterminada: para ver resultados, selecciona la parcela o línea en **TRAZADOS**, y el panel mostrará área y perímetro (parcela) o longitud y tramos (línea abierta).
+
+Al hacer **clic derecho** en FreeCAD con una selección previa, aparece el submenú nativo **Topografía** con las acciones correspondientes:
+
+- **Un vértice**: Editar punto, Reubicar punto, Eliminar puntos.
+- **Dos o más vértices del mismo levantamiento**: Trazar (abierto o cerrado), Eliminar puntos seleccionados.
+- **Un trazado/parcela**: Ver mediciones, Generar plano.
+
+No se ofrece borrado cuando no hay vértices seleccionados ni cuando la selección es mixta/ambigua. Eliminar siempre solicita confirmación y protege estaciones que pertenecen a trazados vinculados. **No se añaden botones** a la barra principal.
+
+Esta función usa el menú contextual **nativo de FreeCAD**, compatible con el método de workbench Python `ContextMenu(recipient)`. Requiere probarse manualmente en FreeCAD 1.1, tanto desde el visor como desde el árbol.
 
 ## Cuadros de plano para imprimir — Topografía 0.9
 

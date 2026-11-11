@@ -25,7 +25,7 @@ def actions_for_selection(selection_ex):
         names = getattr(selected, "SubElementNames", ()) or ()
         if hasattr(obj, "PuntosJSON"):
             count = sum(
-                bool(re.fullmatch(r"Vertex[1-9][0-9]*", str(sub)))
+                bool(re.fullmatch(r"(?:.*\.)?Vertex[1-9][0-9]*", str(sub)))
                 for sub in names
             )
             if count:
