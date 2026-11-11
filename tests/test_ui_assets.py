@@ -29,7 +29,8 @@ class UiAssetsTests(unittest.TestCase):
             referenced.update(re.findall(
                 r"icon_path\(\s*['\"]([^'\"]+)['\"]\s*\)",
                 text
-            ))        self.assertTrue(referenced, "No se detectaron iconos de comandos")
+            ))
+        self.assertTrue(referenced, "No se detectaron iconos de comandos")
         for name in sorted(referenced):
             with self.subTest(command_icon=name):
                 self.assertTrue(
