@@ -94,6 +94,7 @@ def write_catalog(doc, obj, rows, removed_index=None, removed_indices=None):
     No se modifica ningún archivo fuente TXT/ASC.
     """
     from .station_model import parcel_from_rows
+    from .trace_math import trace_from_rows, measure_trace
     from .geometry import Point, measure
 
     if len(rows) > 20000:
@@ -128,15 +129,24 @@ def write_catalog(doc, obj, rows, removed_index=None, removed_indices=None):
             idx - sum(1 for deleted in removed if deleted < idx)
             for idx in old_ids
         ]
-        vertices = parcel_from_rows(rows, indices)
-        stats = measure(vertices)
+        is_open = (
+            getattr(parcel, "TipoTrazado", "") == "Abierto"
+        )
+        vertices = (
+            trace_from_rows(rows, indices)
+            if is_open else parcel_from_rows(rows, indices)
+        )
+        stats = measure_trace(vertices) if is_open else measure(vertices)
         geometry = [
             App.Vector(position_for(project, p).x,
                        position_for(project, p).y, 0.0)
             for p in vertices
         ]
-        shape = Part.Face(Part.makePolygon(geometry + [geometry[0]]))
-        links.append((parcel, indices, vertices, stats, shape))
+        shape = (
+            Part.makePolygon(geometry) if is_open else
+            Part.Face(Part.makePolygon(geometry + [geometry[0]]))
+        )
+        links.append((parcel, indices, vertices, stats, shape, is_open))
 
     # También construir/validar la nube de puntos antes de escribir.
     points = [
@@ -150,16 +160,19 @@ def write_catalog(doc, obj, rows, removed_index=None, removed_indices=None):
     from .point_style import apply_marker_style
     apply_marker_style(obj)
     obj.PuntosJSON = json.dumps(rows, ensure_ascii=False)
-    for parcel, indices, points, stats, shape in links:
+    for parcel, indices, points, stats, shape, is_open in links:
         parcel.Shape = shape
         parcel.IndicesPuntosJSON = json.dumps(indices)
         parcel.CoordenadasJSON = json.dumps(
             [vars(p) for p in points], ensure_ascii=False
         )
-        parcel.AreaTerreno = stats["area_m2"] * 1000000
-        parcel.PerimetroTerreno = stats["perimeter_m"] * 1000
-        parcel.Hectareas = stats["area_ha"]
-        if hasattr(parcel, "GrupoRotulos") and parcel.GrupoRotulos:
-            from .annotations import refresh_annotations
-            refresh_annotations(parcel)
+        if is_open:
+            parcel.LongitudTrazado = stats["longitud_m"] * 1000
+        else:
+            parcel.AreaTerreno = stats["area_m2"] * 1000000
+            parcel.PerimetroTerreno = stats["perimeter_m"] * 1000
+            parcel.Hectareas = stats["area_ha"]
+            if hasattr(parcel, "GrupoRotulos") and parcel.GrupoRotulos:
+                from .annotations import refresh_annotations
+                refresh_annotations(parcel)
     doc.recompute()
