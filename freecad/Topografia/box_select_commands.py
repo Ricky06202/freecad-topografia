@@ -200,12 +200,19 @@ class _RectangleTool:
         # El orden se confirmará antes de crear la parcela.
         if not self.ctrl_down:
             Gui.Selection.clearSelection()
+        already_selected = {
+            subname
+            for item in Gui.Selection.getSelectionEx()
+            if item.Object == self.catalog
+            for subname in item.SubElementNames
+        }
         for idx in indices:
             subelement = "Vertex{}".format(idx + 1)
-            if not Gui.Selection.isSelected(self.catalog, subelement):
+            if subelement not in already_selected:
                 Gui.Selection.addSelection(
                     self.doc.Name, self.catalog.Name, subelement
                 )
+                already_selected.add(subelement)
         selection_bridge.mark_box_selection(self.catalog)
         ui_dock.refresh_panel()
         Gui.getMainWindow().statusBar().showMessage(
