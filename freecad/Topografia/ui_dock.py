@@ -12,6 +12,7 @@ from PySide import QtCore, QtGui, QtWidgets
 
 from .geometry import measure
 from .survey_math import parcel_edges, interior_angles
+from .trace_math import measure_trace
 from .commands import _points
 from .ui_resources import icon_path
 
@@ -111,7 +112,7 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         # Encabezados de navegación breves: la tabla recibe el espacio útil.
         header = QtWidgets.QHBoxLayout()
         parcels_col = QtWidgets.QVBoxLayout()
-        parcels_col.addWidget(QtWidgets.QLabel("PARCELAS"))
+        parcels_col.addWidget(QtWidgets.QLabel("TRAZADOS"))
         self.parcels = QtWidgets.QListWidget()
         self.parcels.setObjectName("TopografiaListaParcelas")
         self.parcels.setMinimumHeight(65)
@@ -191,7 +192,8 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         self.perimeter_value = QtWidgets.QLabel("—")
         grid.addRow("Área:", self.area_value)
         grid.addRow("Hectáreas:", self.ha_value)
-        grid.addRow("Perímetro:", self.perimeter_value)
+        self.perimeter_caption = QtWidgets.QLabel("Perímetro:")
+        grid.addRow(self.perimeter_caption, self.perimeter_value)
         metrics_layout.addWidget(metrics)
         metrics_layout.addWidget(QtWidgets.QLabel("Tramos · rumbos y ángulos"))
         self.sides = QtWidgets.QTableWidget(0, 5)
@@ -369,13 +371,25 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         if chosen_parcel is not None:
             try:
                 points = _points(chosen_parcel)
-                stats = measure(points)
-                self.area_value.setText("{:,.3f} m²".format(stats["area_m2"]))
-                self.ha_value.setText("{:,.5f} ha".format(stats["area_ha"]))
-                self.perimeter_value.setText(
-                    "{:,.3f} m".format(stats["perimeter_m"]))
-                segments = parcel_edges(points)
-                angles = interior_angles(points)
+                is_open = getattr(chosen_parcel, "TipoTrazado", "") == "Abierto"
+                if is_open:
+                    stats = measure_trace(points)
+                    self.area_value.setText("No aplica (línea abierta)")
+                    self.ha_value.setText("—")
+                    self.perimeter_caption.setText("Longitud:")
+                    self.perimeter_value.setText(
+                        "{:,.3f} m".format(stats["longitud_m"]))
+                    segments = stats["tramos"]
+                    angles = [None] * len(segments)
+                else:
+                    stats = measure(points)
+                    self.area_value.setText("{:,.3f} m²".format(stats["area_m2"]))
+                    self.ha_value.setText("{:,.5f} ha".format(stats["area_ha"]))
+                    self.perimeter_caption.setText("Perímetro:")
+                    self.perimeter_value.setText(
+                        "{:,.3f} m".format(stats["perimeter_m"]))
+                    segments = parcel_edges(points)
+                    angles = interior_angles(points)
                 self.sides.setRowCount(len(segments))
                 for i, side in enumerate(segments):
                     data = (
@@ -383,7 +397,8 @@ class ExplorerPanel(QtWidgets.QDockWidget):
                         "{:.3f}".format(side["horizontal_m"]),
                         side["rumbo"],
                         "{:.2f}°".format(side["azimut_grados"]),
-                        "{:.2f}°".format(angles[i]),
+                        "{:.2f}°".format(angles[i])
+                        if angles[i] is not None else "—",
                     )
                     for j, value in enumerate(data):
                         self.sides.setItem(
