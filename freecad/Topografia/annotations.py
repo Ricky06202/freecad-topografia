@@ -70,7 +70,12 @@ def show_or_toggle_measurements(trace, toggle=True):
     if group is not None and toggle:
         doc.openTransaction("Ocultar/mostrar mediciones")
         try:
-            group.ViewObject.Visibility = not group.ViewObject.Visibility
+            was_visible = bool(group.ViewObject.Visibility)
+            if not was_visible:
+                # Al mostrar de nuevo, recalcular también la escala de
+                # rótulos guardados en documentos creados con versiones viejas.
+                refresh_annotations(trace)
+            group.ViewObject.Visibility = not was_visible
             doc.commitTransaction()
             return bool(group.ViewObject.Visibility)
         except Exception:
