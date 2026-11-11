@@ -23,6 +23,7 @@ class _RectangleTool:
         self.start_xy = None
         self.current_xy = None
         self.ctrl_down = False
+        self.dragging = False
         self.root = None
         self.overlay = None
         self.points_node = None
@@ -113,6 +114,13 @@ class _RectangleTool:
         self.doc = None
         self.start_xy = None
         self.current_xy = None
+        self.dragging = False
+
+    def _reset_drag(self):
+        self.start_xy = None
+        self.current_xy = None
+        self.dragging = False
+        self._erase_outline()
 
     @staticmethod
     def _xy(event):
@@ -121,44 +129,66 @@ class _RectangleTool:
 
     def _button(self, callback):
         event = callback.getEvent()
-        if event.getButton() != coin.SoMouseButtonEvent.BUTTON1:
-            return
         if self.view is None or self.doc != App.ActiveDocument:
             self.stop()
             return
+        if event.getButton() != coin.SoMouseButtonEvent.BUTTON1:
+            # Clic derecho y botón central deben pertenecer a FreeCAD.
+            if event.getState() == coin.SoButtonEvent.DOWN:
+                self._reset_drag()
+            return
         if event.getState() == coin.SoButtonEvent.DOWN:
+            self._reset_drag()
             self.start_xy = self._xy(event)
             self.current_xy = self.start_xy
             self.ctrl_down = bool(event.wasCtrlDown())
-            callback.setHandled()
-        elif (event.getState() == coin.SoButtonEvent.UP
-              and self.start_xy is not None):
-            end = self._xy(event)
-            try:
-                if math.hypot(end[0] - self.start_xy[0],
-                              end[1] - self.start_xy[1]) >= 6:
-                    self._resolve_catalog()
-                    if self.catalog is not None:
-                        self._finish(self.start_xy, end)
-                else:
-                    self._click(end)
-            except (RuntimeError, ValueError, IndexError, AttributeError) as exc:
-                QtWidgets.QMessageBox.warning(
-                    Gui.getMainWindow(), "Selección por recuadro", str(exc)
-                )
-                self.stop()
-            finally:
-                self.start_xy = None
-                self.current_xy = None
-                self._erase_outline()
-            callback.setHandled()
+            # IMPORTANTE: no consumir DOWN; FreeCAD debe seleccionar por clic.
+            return
+        if event.getState() != coin.SoButtonEvent.UP or self.start_xy is None:
+            return
+        start = self.start_xy
+        drag = self.dragging
+        end = self._xy(event)
+        self._reset_drag()
+        if not drag:
+            # Clic simple: FreeCAD gestiona vértices, aristas y caras.
+            # No hacerlo setHandled, ni llamar a nuestro selector.
+            return
+        callback.setHandled()
+        try:
+            if self._resolve_catalog() is not None:
+                self._finish(start, end)
+        except Exception as exc:
+            # Nunca abrir un QMessageBox modal desde un callback de Coin:
+            # puede dejar atrapada la captura del botón del ratón.
+            App.Console.PrintError(
+                "Topografía: error en selección por recuadro: {}\n".format(exc)
+            )
+            Gui.getMainWindow().statusBar().showMessage(
+                "Error al seleccionar: consulta Vista de informes.", 8000
+            )
 
     def _move(self, callback):
         if self.start_xy is None or self.view is None:
             return
-        self.current_xy = self._xy(callback.getEvent())
-        self._draw_outline(self.start_xy, self.current_xy)
-        callback.setHandled()
+        if self.doc != App.ActiveDocument:
+            self.stop()
+            return
+        try:
+            pos = self._xy(callback.getEvent())
+            if not self.dragging:
+                if math.hypot(pos[0] - self.start_xy[0],
+                              pos[1] - self.start_xy[1]) < 6:
+                    return  # Movimiento mínimo = clic normal.
+                self.dragging = True
+            self.current_xy = pos
+            self._draw_outline(self.start_xy, pos)
+            callback.setHandled()
+        except Exception as exc:
+            App.Console.PrintError(
+                "Topografía: error al dibujar recuadro: {}\n".format(exc)
+            )
+            self._reset_drag()
 
     def _key(self, callback):
         event = callback.getEvent()
@@ -166,7 +196,7 @@ class _RectangleTool:
                 event.getKey() == coin.SoKeyboardEvent.ESCAPE):
             self.stop()
             Gui.getMainWindow().statusBar().showMessage(
-                "Selección normal activada", 3000
+                "Selección nativa de FreeCAD activada", 3000
             )
             callback.setHandled()
 
@@ -183,43 +213,6 @@ class _RectangleTool:
     def _erase_outline(self):
         if self.line_node is not None:
             self.line_node.numVertices.setValue(0)
-
-    def _click(self, pos):
-        """Clic sencillo dentro del selector rectangular, o sobre el trazado."""
-        from .selection_box_math import closest_point_index
-        self._resolve_catalog()
-        candidate = self.catalog
-        if candidate is not None:
-            coords = [
-                self.view.getPointOnScreen(v.Point)
-                for v in candidate.Shape.Vertexes
-            ]
-            from .point_style import marker_size
-            idx = closest_point_index(coords, pos, marker_size() / 2 + 5)
-        else:
-            idx = None
-        if idx is not None:
-            sub = "Vertex{}".format(idx + 1)
-            already = {
-                item for chosen in Gui.Selection.getSelectionEx()
-                if chosen.Object == candidate for item in chosen.SubElementNames
-            }
-            if not self.ctrl_down:
-                Gui.Selection.clearSelection()
-            if self.ctrl_down and sub in already:
-                Gui.Selection.removeSelection(self.doc.Name, candidate.Name, sub)
-            else:
-                Gui.Selection.addSelection(self.doc.Name, candidate.Name, sub)
-        else:
-            # Los cálculos también se abren al seleccionar una línea/parcela
-            # en el dibujo; la lista TRAZADOS es alternativa fiable.
-            info = self.view.getObjectInfo(pos) if hasattr(self.view, "getObjectInfo") else None
-            objname = info.get("Object") if isinstance(info, dict) else None
-            obj = self.doc.getObject(objname) if isinstance(objname, str) else None
-            if not self.ctrl_down:
-                Gui.Selection.clearSelection()
-            if obj is not None and hasattr(obj, "CoordenadasJSON"):
-                Gui.Selection.addSelection(obj)
 
     def _finish(self, a, b):
         if self.doc != App.ActiveDocument:
