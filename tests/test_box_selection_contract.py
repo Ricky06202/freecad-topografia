@@ -14,6 +14,12 @@ class MockSelection:
     def clearSelection(self):
         self.selected.clear()
 
+    def getSelection(self):
+        return [self.catalog] if self.selected else []
+
+    def removeSelection(self, doc, obj, subname):
+        self.selected.remove(subname)
+
     def getSelectionEx(self):
         if not self.selected:
             return []
@@ -40,6 +46,15 @@ class BoxSelectionContractTests(unittest.TestCase):
                 types.SimpleNamespace(Point=(45, 45, 0)),
             ])
         )
+        self.catalog.ViewObject = types.SimpleNamespace(Visibility=True)
+        self.trace = types.SimpleNamespace(
+            Name="Trazado", CoordenadasJSON="[]", Document=self.doc
+        )
+        self.doc.Objects = [self.catalog, self.trace]
+        self.doc.getObject = lambda name: (
+            self.trace if name == "Trazado" else self.catalog
+            if name == "Puntos" else None
+        )
         self.selection = MockSelection(self.catalog)
         self.messages = []
         status = types.SimpleNamespace(
@@ -61,6 +76,8 @@ class BoxSelectionContractTests(unittest.TestCase):
         panel.refresh_panel = lambda: None
         bridge = types.ModuleType("freecad.Topografia.selection_bridge")
         bridge.mark_box_selection = lambda cat: self.messages.append(("box", cat.Name))
+        style = types.ModuleType("freecad.Topografia.point_style")
+        style.marker_size = lambda: 24
         self.mocks = patch.dict(sys.modules, {
             "FreeCAD": app,
             "FreeCADGui": gui,
@@ -69,6 +86,7 @@ class BoxSelectionContractTests(unittest.TestCase):
             "pivy.coin": coin,
             "freecad.Topografia.ui_dock": panel,
             "freecad.Topografia.selection_bridge": bridge,
+            "freecad.Topografia.point_style": style,
         })
         self.mocks.start()
         sys.modules.pop("freecad.Topografia.box_select_commands", None)
@@ -79,7 +97,10 @@ class BoxSelectionContractTests(unittest.TestCase):
         self.tool.doc = self.doc
         self.tool.catalog = self.catalog
         self.tool.view = types.SimpleNamespace(
-            getPointOnScreen=lambda point: point[:2]
+            getPointOnScreen=lambda point: point[:2],
+            getObjectInfo=lambda pos: (
+                {"Object": "Trazado"} if pos == (99, 99) else None
+            ),
         )
 
     def tearDown(self):
@@ -99,6 +120,22 @@ class BoxSelectionContractTests(unittest.TestCase):
         self.tool._finish((10, 10), (50, 50))
         self.assertEqual(self.selection.selected,
                          ["Vertex1", "Vertex2", "Vertex3", "Vertex4"])
+
+    def test_default_tool_click_selects_nearest_point(self):
+        self.tool.ctrl_down = False
+        self.tool._click((6, 5))
+        self.assertEqual(self.selection.selected, ["Vertex1"])
+        self.tool._click((26, 25))
+        self.assertEqual(self.selection.selected, ["Vertex3"])
+
+    def test_default_tool_ctrl_click_toggles_points(self):
+        self.tool.ctrl_down = False
+        self.tool._click((5, 5))
+        self.tool.ctrl_down = True
+        self.tool._click((15, 15))
+        self.assertEqual(self.selection.selected, ["Vertex1", "Vertex2"])
+        self.tool._click((5, 5))
+        self.assertEqual(self.selection.selected, ["Vertex2"])
 
     def test_empty_rectangle_clears_without_error(self):
         self.selection.selected = ["Vertex1"]
