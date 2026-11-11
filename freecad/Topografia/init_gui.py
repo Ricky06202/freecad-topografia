@@ -85,21 +85,16 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
                 toolbar.setIconSize(QtCore.QSize(28, 28))
         ui_dock.show_panel()
         box_select_commands.activate_default()
+        from freecad.Topografia import context_toolbar
+        context_toolbar.activate()
 
     def Deactivated(self):
         from freecad.Topografia import interactive_commands, box_select_commands, ui_dock
+        from freecad.Topografia import context_toolbar
+        context_toolbar.deactivate()
         interactive_commands.stop_active()
         box_select_commands.stop_active()
         ui_dock.hide_panel()
-
-    def ContextMenu(self, recipient):
-        """Agregar acciones al clic derecho nativo de FreeCAD (visor/árbol)."""
-        from freecad.Topografia.context_actions import actions_for_selection
-        label, commands = actions_for_selection(
-            FreeCADGui.Selection.getSelectionEx()
-        )
-        if commands:
-            self.appendContextMenu(label, list(commands))
 
     def GetClassName(self):
         return "Gui::PythonWorkbench"

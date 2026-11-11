@@ -83,8 +83,8 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         outer.addWidget(self.project_name)
 
         self.help = QtWidgets.QLabel(
-            "Selección por recuadro activa: clic en un punto o arrastra "
-            "para elegir varios. Ctrl añade otros vértices."
+            "Clic o recuadro para seleccionar. Aparecerán arriba "
+            "los botones de las operaciones disponibles."
         )
         self.help.setWordWrap(True)
         self.help.setToolTip(
@@ -163,8 +163,6 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         for command, icon, hint in (
             ("Topografia_SeleccionarRecuadro", "seleccionar-recuadro", "Seleccionar puntos por recuadro (predeterminado)"),
             ("Topografia_Seleccionar", "seleccionar", "Selección normal alternativa"),
-            ("Topografia_EditarPunto", "editar-punto", "Editar punto seleccionado"),
-            ("Topografia_EliminarPunto", "eliminar-punto", "Eliminar puntos seleccionados"),
         ):
             button = QtWidgets.QToolButton()
             button.setIcon(QtGui.QIcon(icon_path(icon)))
