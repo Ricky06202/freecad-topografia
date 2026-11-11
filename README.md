@@ -2,7 +2,19 @@
 
 Banco de trabajo (Workbench) para dibujar líneas abiertas (calles, caminos y ejes), parcelas cerradas y consultar longitudes, área y perímetro. Interfaz en español; proyecto piloto para uso personal.
 
-> Estado: prototipo 0.9.2. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+> Estado: prototipo 0.9.3. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+
+## Selección estable, eliminar trazados y medir en el dibujo — Topografía 0.9.3
+
+Esta revisión corrige un defecto informado durante la prueba en FreeCAD 1.1: al hacer un **clic simple** sobre un vértice, una línea o un polígono, el selector de recuadro interceptaba tanto la pulsación como la liberación del ratón e impedía la selección normal de FreeCAD. **Ahora el clic simple y los movimientos de menos de 6 píxeles se dejan a FreeCAD**. El complemento solo consume el gesto cuando se arrastra un recuadro de al menos 6 píxeles. El clic derecho y el botón central tampoco se interceptan, y los errores del callback no abren diálogos modales dentro del visor.
+
+Al seleccionar una **línea abierta o parcela cerrada**, la barra superior inteligente muestra **Medir · Plano · Eliminar trazado**. Para eliminar, aparece confirmación; solo se borran el trazado y sus rótulos asociados. Los **puntos originales permanecen** en el levantamiento y el cambio admite deshacer en FreeCAD. El borrado requiere una selección explícita de trazado: no actúa cuando hay puntos mezclados con otros objetos.
+
+El botón **Medir** ya **no abre una ventana informativa**: muestra directamente sobre el dibujo los nombres de las estaciones, **distancias y rumbos de cada lado**, y el **área y perímetro en el centro de una parcela** (con un punto interior para polígonos cóncavos). En una **línea abierta** muestra las distancias/rumbos de los tramos y la **longitud total**, sin superficie inventada ni cerrar el último tramo. Un segundo clic en Medir oculta las etiquetas; otro clic las muestra de nuevo. Las etiquetas se regeneran cuando cambian las coordenadas de los puntos vinculados.
+
+El panel lateral **Mediciones** sigue mostrando los cálculos numéricos y no se modifica la barra principal de cuatro botones.
+
+**Pendiente de prueba manual en FreeCAD:** comprobar que clic simple no «atrapa» el modo recuadro, que clic y arrastre funcionan en el mismo modo, que seleccionar una línea/parcela muestra Eliminar trazado, que el botón Medir genera Draft Text visualmente legible y que el área queda dentro del polígono. Validar también ocultar/mostrar, corrección de puntos y deshacer borrado. Las pruebas de GitHub usan simulaciones de la GUI y no sustituyen la prueba real.
 
 ## Barra de acciones inteligentes — Topografía 0.9.2
 

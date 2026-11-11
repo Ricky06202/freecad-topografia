@@ -168,3 +168,15 @@ El usuario rechazó expresamente el submenú en forma de carpeta del clic derech
 La barra muestra textos cortos junto a iconos, se desactiva al cambiar Workbench, escucha selecciones independientemente del panel lateral y agrupa notificaciones durante selecciones rectangulares masivas. El clic derecho normal de FreeCAD sigue disponible, sin menú especial añadido por el complemento.
 
 **Pendiente:** revisar con el usuario en FreeCAD 1.1 el comportamiento real, que editar/mover respeta la selección y que la barra no se duplica ni roba espacio cuando está vacía. Pruebas simuladas no validan Qt/Pivy reales.
+
+## Decisión/corrección 0.9.3 — selección por clic, borrado y cotas visuales
+
+**Incidencias reportadas por el usuario en FreeCAD 1.1:** «si doy solo un clic sobre algo, un punto, una línea o polígono, se traba en modo selección cuadrada»; no había botón para borrar trazados; la acción Medir solo abría un cuadro de texto en vez de escribir las distancias junto a cada lado y el área en el centro del polígono.
+
+**Corrección de selección:** el callback Pivy del selector de recuadro ya no marca como manejados los eventos de pulsación ni liberación del clic simple. Se usa un umbral de arrastre de 6 px para iniciar el recuadro; movimientos menores no se capturan. Los botones derecho y central no se interceptan. La limpieza del estado de arrastre se hace antes de modificar la selección, y errores dentro de callbacks se muestran en Vista de informes sin diálogo modal que pudiera congelar el visor.
+
+**Acción eliminar trazado:** disponible en la barra contextual superior al seleccionar líneas/parcelas, con confirmación. Borra solo objeto trazado y grupo de etiquetas; mantiene catálogo de puntos intacto. Exige selección explícita (no inferida) para evitar borrados ambiguos.
+
+**Medir directamente sobre el dibujo:** genera rótulos Draft Text para cada vértice y cada lado (longitud y rumbo); parcelas cerradas muestran área/perímetro dentro de la figura (centroide o posición interior para polígonos cóncavos). Las líneas abiertas solo muestran longitud total y tramos existentes. Un segundo clic oculta rótulos; otro los vuelve a mostrar. Los rótulos quedan vinculados y se actualizan al editar coordenadas originales, tanto para parcelas como líneas abiertas.
+
+**Verificación:** tests de geometría y posicionamiento del texto, simulaciones de los callbacks de clic/arrastre y no captura de clic derecho, y pruebas de borrado sin eliminar catálogo; estado CI en [GitHub Actions](https://github.com/Ricky06202/freecad-topografia/actions). **Prueba visual Pivy/FreeCAD 1.1 pendiente:** confirmar selección de vértices/partes, cotas legibles, recalculado y deshacer.
