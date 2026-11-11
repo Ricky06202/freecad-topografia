@@ -6,6 +6,7 @@ No convierte a DWG; FreeCAD requiere conversor externo para dicho formato.
 import unicodedata
 from .geometry import measure
 from .trace_math import measure_trace
+from .sheet_layout import side_rows
 
 
 def _name(value):
@@ -57,6 +58,8 @@ def create_dxf(points, title="Parcela", metadata=None, closed=True):
         "PLANO: {}".format(title),
         "ELABORADO POR: {}".format(metadata.get("autor") or "Sin especificar"),
         "FECHA: {}".format(metadata.get("fecha") or "Sin especificar"),
+        "CLIENTE: {}".format(metadata.get("cliente") or "No especificado"),
+        "UBICACION: {}".format(metadata.get("ubicacion") or "No especificada"),
         "CRS: {}".format(metadata.get("crs") or "No declarado"),
         ("AREA HORIZONTAL: {:.3f} m2".format(stats["area_m2"])
          if closed else "TRAZADO ABIERTO SIN AREA"),
@@ -69,6 +72,18 @@ def create_dxf(points, title="Parcela", metadata=None, closed=True):
         "{}  {:.3f}  {:.3f}  {:.3f}".format(p.name, p.x, p.y, p.z)
         for p in points
     ]
+    labels += [
+        "CUADRO DE RUMBOS Y DISTANCIAS (metros)",
+        "DESDE  HASTA  RUMBO  DISTANCIA (m)",
+    ]
+    labels += [
+        "{}  {}  {}  {:.3f}".format(
+            side["inicio"], side["fin"], side["rumbo"],
+            side["horizontal_m"]
+        )
+        for side in side_rows(points, closed=closed)
+    ]
+    labels += ["FIRMA Y SELLO: (espacio en blanco)"]
     for idx, label in enumerate(labels):
         rows.extend([
             "0", "TEXT", "8", "CAJETIN",
@@ -77,5 +92,14 @@ def create_dxf(points, title="Parcela", metadata=None, closed=True):
             "40", "{:.4f}".format(height),
             "1", _name(label),
         ])
+    # Una línea física en blanco para firma (no se añade rúbrica falsa).
+    sign_y = start_y - (len(labels) + 1) * height * 2.3
+    rows += [
+        "0", "LINE", "8", "CAJETIN_FIRMA",
+        "10", "{:.8f}".format(start_x),
+        "20", "{:.8f}".format(sign_y),
+        "11", "{:.8f}".format(start_x + max(12, height * 32)),
+        "21", "{:.8f}".format(sign_y),
+    ]
     rows += ["0", "ENDSEC", "0", "EOF"]
     return "\r\n".join(rows) + "\r\n"
