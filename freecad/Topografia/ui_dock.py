@@ -427,6 +427,11 @@ def refresh_panel():
 
 def show_panel():
     global _panel, _observing
+    from .point_style import apply_marker_style
+    if App.ActiveDocument is not None:
+        for obj in App.ActiveDocument.Objects:
+            if hasattr(obj, "PuntosJSON"):
+                apply_marker_style(obj)
     main = Gui.getMainWindow()
     if _panel is None:
         existing = main.findChild(QtWidgets.QDockWidget,
