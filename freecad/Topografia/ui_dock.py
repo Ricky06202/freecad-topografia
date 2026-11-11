@@ -82,8 +82,9 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         outer.addWidget(self.project_name)
 
         self.help = QtWidgets.QLabel(
-            "Seleccionar es el modo normal: clic en un vértice; "
-            "Ctrl+clic para añadir otros. Las acciones usan esa selección."
+            "Seleccionar: clic o Ctrl+clic en puntos. "
+            "Para varios, pulsa Recuadro y arrastra. "
+            "Antes de conectar podrás ordenar los vértices."
         )
         self.help.setWordWrap(True)
         self.help.setToolTip(
@@ -136,7 +137,7 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         points_layout = QtWidgets.QVBoxLayout(points_tab)
         points_layout.setContentsMargins(5, 5, 5, 5)
         self.selection_info = QtWidgets.QLabel(
-            "0 seleccionados · Ctrl+clic añade vértices"
+            "0 seleccionados · Clic, Ctrl+clic o recuadro"
         )
         self.selection_info.setWordWrap(True)
         points_layout.addWidget(self.selection_info)
@@ -161,6 +162,7 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         actions = QtWidgets.QHBoxLayout()
         for command, icon, hint in (
             ("Topografia_Seleccionar", "seleccionar", "Seleccionar puntos (modo normal)"),
+            ("Topografia_SeleccionarRecuadro", "seleccionar-recuadro", "Arrastra un recuadro para seleccionar puntos"),
             ("Topografia_AgregarPunto", "agregar-punto", "Introducir punto por coordenadas"),
             ("Topografia_AgregarTramo", "agregar-tramo", "Añadir punto por rumbo y distancia"),
             ("Topografia_EditarPunto", "editar-punto", "Editar el punto seleccionado"),
@@ -354,7 +356,7 @@ class ExplorerPanel(QtWidgets.QDockWidget):
              " → ".join(self.model.rows[i]["nombre"]
                         for i in indices if i < len(self.model.rows)))
             if indices else
-            "Seleccionar: clic en vértice · Ctrl+clic para añadir · Esc para salir del dibujo"
+            "Clic o Ctrl+clic · Recuadro para varios · Ordena antes de conectar"
         )
         if selection_error:
             self.note.setText(selection_error)

@@ -19,7 +19,9 @@ class SelectTool:
 
     def Activated(self):
         from .interactive_commands import stop_active
-        stop_active()  # Salir de 'colocar' y 'mover' y devolver clics a FreeCAD.
+        from .box_select_commands import stop_active as stop_box
+        stop_active()
+        stop_box()  # Salir de 'colocar' y 'mover' y devolver clics a FreeCAD.
         Gui.getMainWindow().statusBar().showMessage(
             "Seleccionar: clic en un vértice; Ctrl+clic para elegir varios. "
             "Después usa Editar, Eliminar o Conectar.",
