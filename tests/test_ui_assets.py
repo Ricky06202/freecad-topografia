@@ -7,7 +7,7 @@ from pathlib import Path
 from freecad.Topografia.ui_resources import icon_path
 
 ROOT = Path(__file__).resolve().parents[1] / "freecad" / "Topografia"
-ICONS = ("importar-sight", "crear-parcela", "medir-parcela", "exportar-plano", "panel", "agregar-punto", "editar-punto", "eliminar-punto", "conectar-puntos", "generar-plano", "clic-punto", "mover-punto", "subdividir", "superficie-tin", "curvas-nivel", "etiquetar", "perfil", "corte-relleno", "seleccionar", "agregar-tramo", "seleccionar-recuadro")
+ICONS = ("importar-sight", "crear-parcela", "medir-parcela", "exportar-plano", "panel", "agregar-punto", "editar-punto", "eliminar-punto", "conectar-puntos", "generar-plano", "clic-punto", "mover-punto", "subdividir", "superficie-tin", "curvas-nivel", "etiquetar", "perfil", "corte-relleno", "seleccionar", "agregar-tramo", "seleccionar-recuadro", "trazar")
 
 
 class UiAssetsTests(unittest.TestCase):
@@ -19,6 +19,24 @@ class UiAssetsTests(unittest.TestCase):
                 svg = ET.parse(path).getroot()
                 self.assertTrue(svg.tag.endswith("svg"))
                 self.assertEqual(svg.attrib.get("viewBox"), "0 0 24 24")
+
+    def test_every_command_icon_is_registered_and_exists(self):
+        import re
+        source_files = ROOT.glob("*.py")
+        referenced = set()
+        for source_file in source_files:
+            text = source_file.read_text(encoding="utf-8")
+            referenced.update(re.findall(
+                r'icon_path\\(\\s*["\\\']([^"\\\']+)["\\\']\\s*\\)',
+                text
+            ))
+        self.assertTrue(referenced, "No se detectaron iconos de comandos")
+        for name in sorted(referenced):
+            with self.subTest(command_icon=name):
+                self.assertTrue(
+                    Path(icon_path(name)).is_file(),
+                    "Falta registrar o incluir el SVG de {}".format(name)
+                )
 
     def test_icon_path_rejects_unknown_paths(self):
         with self.assertRaises(ValueError):
