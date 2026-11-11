@@ -101,6 +101,7 @@ class ContextToolbarTests(unittest.TestCase):
         self.assertEqual(commands, [
             "Topografia_MedirParcela",
             "Topografia_GenerarPlano",
+            "Topografia_EliminarTrazado",
         ])
 
     def test_deselect_hides_toolbar(self):

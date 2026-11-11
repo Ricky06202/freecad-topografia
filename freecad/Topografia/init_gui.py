@@ -17,6 +17,7 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
         from freecad.Topografia import sight_commands  # Importador Sight
         from freecad.Topografia import point_commands  # Editor de puntos
         from freecad.Topografia import trace_commands  # Abierto o cerrado
+        from freecad.Topografia import trace_delete_commands  # Borrar trazado
         from freecad.Topografia import quick_commands  # Captura simplificada
         from freecad.Topografia import select_commands  # Selector normal del visor
         from freecad.Topografia import box_select_commands  # Recuadro de vértices
@@ -52,6 +53,7 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
             ],
             "Trazados y parcelas": [
                 "Topografia_Trazar",
+                "Topografia_EliminarTrazado",
                 "Topografia_CrearParcela",
                 "Topografia_MedirParcela",
                 "Topografia_Subdividir",

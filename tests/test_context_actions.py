@@ -46,6 +46,7 @@ class NativeContextMenuTests(unittest.TestCase):
         self.assertEqual(commands, (
             "Topografia_MedirParcela",
             "Topografia_GenerarPlano",
+            "Topografia_EliminarTrazado",
         ))
 
     def test_no_points_no_dangerous_actions(self):

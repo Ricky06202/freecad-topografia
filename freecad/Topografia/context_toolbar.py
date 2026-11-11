@@ -20,10 +20,14 @@ _BUTTONS = {
                          "Crear línea abierta o parcela a partir de estos puntos"),
     "Topografia_EliminarPunto": ("Eliminar", "eliminar-punto",
                                 "Eliminar los puntos seleccionados; pide confirmación"),
-    "Topografia_MedirParcela": ("Mediciones", "medir-parcela",
-                                "Consultar los cálculos del trazado"),
+    "Topografia_MedirParcela": ("Medir", "medir-parcela",
+                                "Mostrar u ocultar rumbos, lados y área en el dibujo"),
     "Topografia_GenerarPlano": ("Plano", "generar-plano",
                                "Generar plano PDF, SVG o DXF"),
+    "Topografia_EliminarTrazado": (
+        "Eliminar trazado", "eliminar-punto",
+        "Borrar este trazado sin borrar los puntos originales"
+    ),
 }
 _toolbar = None
 _title = None

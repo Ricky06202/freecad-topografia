@@ -43,7 +43,7 @@ class UiAssetsTests(unittest.TestCase):
             icon_path("../../etc/passwd")
 
     def test_metadata_and_workbench_wiring(self):
-        for filename in ("commands.py", "sight_commands.py", "ui_dock.py", "point_commands.py", "sheet_commands.py", "interactive_commands.py", "terrain_commands.py", "subdivision_commands.py", "annotations.py", "earthwork_commands.py", "select_commands.py", "tramo_commands.py", "box_select_commands.py", "trace_commands.py", "quick_commands.py"):
+        for filename in ("commands.py", "sight_commands.py", "ui_dock.py", "point_commands.py", "sheet_commands.py", "interactive_commands.py", "terrain_commands.py", "subdivision_commands.py", "annotations.py", "earthwork_commands.py", "select_commands.py", "tramo_commands.py", "box_select_commands.py", "trace_commands.py", "quick_commands.py", "trace_delete_commands.py"):
             source = (ROOT / filename).read_text(encoding="utf-8")
             ast.parse(source)
             self.assertIn('"Pixmap": icon_path(', source)
@@ -58,6 +58,7 @@ class UiAssetsTests(unittest.TestCase):
         self.assertIn("Topografia_AgregarTramo", gui)
         self.assertIn("Topografia_SeleccionarRecuadro", gui)
         self.assertIn("Topografia_Trazar", gui)
+        self.assertIn("Topografia_EliminarTrazado", gui)
         self.assertIn("Topografia_Agregar", gui)
         self.assertIn("self.appendToolbar(\"Topografía · Principal\"", gui)
         self.assertIn("box_select_commands.activate_default()", gui)

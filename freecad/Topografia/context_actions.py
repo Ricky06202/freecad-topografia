@@ -11,6 +11,7 @@ _DELETE = "Topografia_EliminarPunto"
 _TRACE = "Topografia_Trazar"
 _MEASURE = "Topografia_MedirParcela"
 _SHEET = "Topografia_GenerarPlano"
+_DELETE_TRACE = "Topografia_EliminarTrazado"
 
 
 def actions_for_selection(selection_ex):
@@ -41,5 +42,5 @@ def actions_for_selection(selection_ex):
         if number >= 2:
             return "Puntos · Topografía", (_TRACE, _DELETE)
     if len(trace_objects) == 1 and not point_objects:
-        return "Trazado · Topografía", (_MEASURE, _SHEET)
+        return "Trazado · Topografía", (_MEASURE, _SHEET, _DELETE_TRACE)
     return None, ()
