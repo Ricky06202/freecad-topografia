@@ -162,13 +162,10 @@ class ExplorerPanel(QtWidgets.QDockWidget):
 
         actions = QtWidgets.QHBoxLayout()
         for command, icon, hint in (
-            ("Topografia_Seleccionar", "seleccionar", "Seleccionar puntos (modo normal)"),
-            ("Topografia_SeleccionarRecuadro", "seleccionar-recuadro", "Arrastra un recuadro para seleccionar puntos"),
-            ("Topografia_AgregarPunto", "agregar-punto", "Introducir punto por coordenadas"),
-            ("Topografia_AgregarTramo", "agregar-tramo", "Añadir punto por rumbo y distancia"),
-            ("Topografia_EditarPunto", "editar-punto", "Editar el punto seleccionado"),
+            ("Topografia_Seleccionar", "seleccionar", "Selección normal"),
+            ("Topografia_SeleccionarRecuadro", "seleccionar-recuadro", "Seleccionar puntos por recuadro"),
+            ("Topografia_EditarPunto", "editar-punto", "Editar punto seleccionado"),
             ("Topografia_EliminarPunto", "eliminar-punto", "Eliminar puntos seleccionados"),
-            ("Topografia_ConectarPuntos", "conectar-puntos", "Crear parcela desde selección"),
         ):
             button = QtWidgets.QToolButton()
             button.setIcon(QtGui.QIcon(icon_path(icon)))
