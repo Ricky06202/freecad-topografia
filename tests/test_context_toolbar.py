@@ -91,8 +91,8 @@ class ContextToolbarTests(unittest.TestCase):
         obj = types.SimpleNamespace(Name="Survey", PuntosJSON="[]")
         commands = self.pick(obj, "Vertex1", "Vertex3")
         self.assertEqual(commands, [
-            "Topografia_EliminarPunto",
             "Topografia_Trazar",
+            "Topografia_EliminarPunto",
         ])
 
     def test_traced_parcel_offers_measures_and_plan(self):
