@@ -40,9 +40,13 @@ class _PointPicker:
         self.mode = None
         self.index = None
         self.doc = None
+        from . import box_select_commands
+        box_select_commands.ensure_default()
 
     def start(self, mode):
         self.stop()
+        from . import box_select_commands
+        box_select_commands.stop_active(disable_default=False)
         self.doc = App.ActiveDocument or App.newDocument("Topografia")
         self.view = Gui.activeDocument().activeView()
         self.view.viewTop()
@@ -164,6 +168,10 @@ class _PointPicker:
 
 
 _picker = _PointPicker()
+
+
+def is_active():
+    return _picker.mode is not None
 
 
 def stop_active():

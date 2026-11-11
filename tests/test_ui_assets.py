@@ -60,6 +60,8 @@ class UiAssetsTests(unittest.TestCase):
         self.assertIn("Topografia_Trazar", gui)
         self.assertIn("Topografia_Agregar", gui)
         self.assertIn("self.appendToolbar(\"Topografía · Principal\"", gui)
+        self.assertIn("box_select_commands.activate_default()", gui)
+        self.assertIn("self.tabs.setCurrentWidget(metrics_tab)", (ROOT / "ui_dock.py").read_text(encoding="utf-8"))
         self.assertIn("ui_dock.show_panel()", gui)
         self.assertIn("ui_dock.hide_panel()", gui)
 

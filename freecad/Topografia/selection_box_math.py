@@ -38,3 +38,21 @@ def reorder_indices(indices, ordered):
             set(indices) != set(ordered)):
         raise ValueError("El orden debe incluir los puntos seleccionados una sola vez")
     return ordered
+
+
+def closest_point_index(projected, pos, radius_px=16):
+    """Vértice más cercano al clic (centro proyectado, con tolerancia)."""
+    if radius_px <= 0:
+        raise ValueError("Radio de captura inválido")
+    px, py = float(pos[0]), float(pos[1])
+    closest = None
+    best_sq = float(radius_px) ** 2
+    for i, xy in enumerate(projected):
+        if xy is None:
+            continue
+        dx = float(xy[0]) - px
+        dy = float(xy[1]) - py
+        distance_sq = dx * dx + dy * dy
+        if distance_sq <= best_sq:
+            closest, best_sq = i, distance_sq
+    return closest

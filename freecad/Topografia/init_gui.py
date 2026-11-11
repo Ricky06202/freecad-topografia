@@ -30,7 +30,7 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
         # Solo cuatro comandos a la vista. El resto permanece en el menú
         # Topografía y en las acciones contextuales del explorador.
         primary = [
-            "Topografia_Seleccionar",
+            "Topografia_SeleccionarRecuadro",
             "Topografia_Agregar",
             "Topografia_Trazar",
             "Topografia_GenerarPlano",
@@ -74,9 +74,9 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
 
     def Activated(self):
         from freecad.Topografia import interactive_commands, box_select_commands, ui_dock
-        box_select_commands.stop_active()
-        # Selección normal de FreeCAD es la herramienta predeterminada.
         interactive_commands.stop_active()
+        box_select_commands.stop_active()
+        # El selector rectangular es predeterminado al entrar en Topografía.
         # La barra de FreeCAD muestra exclusivamente iconos; los nombres
         # permanecen accesibles por tooltip, barra de estado y menús.
         for toolbar in FreeCADGui.getMainWindow().findChildren(QtWidgets.QToolBar):
@@ -84,6 +84,7 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
                 toolbar.setToolButtonStyle(QtCore.Qt.ToolButtonIconOnly)
                 toolbar.setIconSize(QtCore.QSize(28, 28))
         ui_dock.show_panel()
+        box_select_commands.activate_default()
 
     def Deactivated(self):
         from freecad.Topografia import interactive_commands, box_select_commands, ui_dock

@@ -83,9 +83,8 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         outer.addWidget(self.project_name)
 
         self.help = QtWidgets.QLabel(
-            "Seleccionar: clic o Ctrl+clic en puntos. "
-            "Para varios, pulsa Recuadro y arrastra. "
-            "Antes de conectar podrás ordenar los vértices."
+            "Selección por recuadro activa: clic en un punto o arrastra "
+            "para elegir varios. Ctrl añade otros vértices."
         )
         self.help.setWordWrap(True)
         self.help.setToolTip(
@@ -162,8 +161,8 @@ class ExplorerPanel(QtWidgets.QDockWidget):
 
         actions = QtWidgets.QHBoxLayout()
         for command, icon, hint in (
-            ("Topografia_Seleccionar", "seleccionar", "Selección normal"),
-            ("Topografia_SeleccionarRecuadro", "seleccionar-recuadro", "Seleccionar puntos por recuadro"),
+            ("Topografia_SeleccionarRecuadro", "seleccionar-recuadro", "Seleccionar puntos por recuadro (predeterminado)"),
+            ("Topografia_Seleccionar", "seleccionar", "Selección normal alternativa"),
             ("Topografia_EditarPunto", "editar-punto", "Editar punto seleccionado"),
             ("Topografia_EliminarPunto", "eliminar-punto", "Eliminar puntos seleccionados"),
         ):
@@ -182,7 +181,7 @@ class ExplorerPanel(QtWidgets.QDockWidget):
 
         metrics_tab = QtWidgets.QWidget()
         metrics_layout = QtWidgets.QVBoxLayout(metrics_tab)
-        metrics = QtWidgets.QGroupBox("Superficie y perímetro")
+        metrics = QtWidgets.QGroupBox("Cálculos del trazado seleccionado")
         grid = QtWidgets.QFormLayout(metrics)
         self.area_value = QtWidgets.QLabel("—")
         self.ha_value = QtWidgets.QLabel("—")
@@ -203,6 +202,11 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         self.sides.horizontalHeader().setStretchLastSection(True)
         metrics_layout.addWidget(self.sides, 1)
         self.tabs.addTab(metrics_tab, "Mediciones")
+        self.tabs.setCurrentWidget(metrics_tab)  # Mostrar cálculos por defecto
+        self.sides.setToolTip(
+            "Selecciona una parcela o línea de TRAZADOS para ver sus tramos, "
+            "rumbos, distancias, área o longitud"
+        )
 
         self.note = QtWidgets.QLabel(
             "Coordenadas en metros. Verifica el CRS antes de planos oficiales."
@@ -320,8 +324,9 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         if chosen_catalog in catalogs:
             self.catalogs.setCurrentRow(catalogs.index(chosen_catalog))
 
-        self.area_value.setText("—")
+        self.area_value.setText("Selecciona un trazado")
         self.ha_value.setText("—")
+        self.perimeter_caption.setText("Perímetro:")
         self.perimeter_value.setText("—")
         self.sides.setRowCount(0)
 
@@ -355,7 +360,7 @@ class ExplorerPanel(QtWidgets.QDockWidget):
              " → ".join(self.model.rows[i]["nombre"]
                         for i in indices if i < len(self.model.rows)))
             if indices else
-            "Clic o Ctrl+clic · Recuadro para varios · Ordena antes de conectar"
+            "Arrastra un recuadro o haz clic · Ctrl añade puntos"
         )
         if selection_error:
             self.note.setText(selection_error)
@@ -457,6 +462,8 @@ def show_panel():
     _panel.show()
     _panel.raise_()
     _panel.refresh()
+    from . import box_select_commands
+    box_select_commands.ensure_default()
 
 
 def hide_panel():

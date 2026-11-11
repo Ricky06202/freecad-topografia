@@ -29,27 +29,27 @@ class _RectangleTool:
         self.line_node = None
         self.callbacks = []
 
+    def _resolve_catalog(self):
+        """Usar el levantamiento visible actual (también tras crear puntos)."""
+        from . import ui_dock
+        if self.doc is None:
+            return None
+        catalogs = [o for o in self.doc.Objects
+                    if hasattr(o, "PuntosJSON") and o.ViewObject.Visibility
+                    and len(o.Shape.Vertexes)]
+        selected = [o for o in Gui.Selection.getSelection() if o in catalogs]
+        shown = ui_dock.active_catalog()
+        candidate = (selected[0] if len(selected) == 1 else
+                     shown if shown in catalogs else
+                     catalogs[0] if len(catalogs) == 1 else None)
+        self.catalog = candidate
+        return candidate
+
     def start(self):
         self.stop()
         doc = App.ActiveDocument
         if doc is None:
             raise ValueError("Abre un documento de FreeCAD antes de seleccionar")
-        from . import ui_dock
-        catalogs = [o for o in doc.Objects
-                    if hasattr(o, "PuntosJSON") and o.ViewObject.Visibility]
-        selected = [o for o in Gui.Selection.getSelection()
-                    if o in catalogs]
-        candidate = (selected[0] if len(selected) == 1 else
-                     ui_dock.active_catalog() if ui_dock.active_catalog() in catalogs
-                     else catalogs[0] if len(catalogs) == 1 else None)
-        if candidate is None:
-            raise ValueError(
-                "Elige un levantamiento visible en el panel o en el árbol "
-                "antes de dibujar el recuadro."
-            )
-        if not len(candidate.Shape.Vertexes):
-            raise ValueError("El levantamiento todavía no tiene puntos")
-        self.catalog = candidate
         self.doc = doc
         self.view = Gui.activeDocument().activeView()
         self.view.viewTop()
@@ -87,8 +87,8 @@ class _RectangleTool:
             self.stop()
             raise
         Gui.getMainWindow().statusBar().showMessage(
-            "Seleccionar por recuadro: arrastra el ratón sobre los puntos "
-            "· Ctrl+arrastrar añade otros · Esc termina."
+            "Selección predeterminada: clic en punto o arrastra un recuadro "
+            "· Ctrl añade otros · Esc vuelve a FreeCAD."
         )
 
     def stop(self):
@@ -137,8 +137,12 @@ class _RectangleTool:
             try:
                 if math.hypot(end[0] - self.start_xy[0],
                               end[1] - self.start_xy[1]) >= 6:
-                    self._finish(self.start_xy, end)
-            except (RuntimeError, ValueError, IndexError) as exc:
+                    self._resolve_catalog()
+                    if self.catalog is not None:
+                        self._finish(self.start_xy, end)
+                else:
+                    self._click(end)
+            except (RuntimeError, ValueError, IndexError, AttributeError) as exc:
                 QtWidgets.QMessageBox.warning(
                     Gui.getMainWindow(), "Selección por recuadro", str(exc)
                 )
@@ -179,6 +183,43 @@ class _RectangleTool:
     def _erase_outline(self):
         if self.line_node is not None:
             self.line_node.numVertices.setValue(0)
+
+    def _click(self, pos):
+        """Clic sencillo dentro del selector rectangular, o sobre el trazado."""
+        from .selection_box_math import closest_point_index
+        self._resolve_catalog()
+        candidate = self.catalog
+        if candidate is not None:
+            coords = [
+                self.view.getPointOnScreen(v.Point)
+                for v in candidate.Shape.Vertexes
+            ]
+            from .point_style import marker_size
+            idx = closest_point_index(coords, pos, marker_size() / 2 + 5)
+        else:
+            idx = None
+        if idx is not None:
+            sub = "Vertex{}".format(idx + 1)
+            already = {
+                item for chosen in Gui.Selection.getSelectionEx()
+                if chosen.Object == candidate for item in chosen.SubElementNames
+            }
+            if not self.ctrl_down:
+                Gui.Selection.clearSelection()
+            if self.ctrl_down and sub in already:
+                Gui.Selection.removeSelection(self.doc.Name, candidate.Name, sub)
+            else:
+                Gui.Selection.addSelection(self.doc.Name, candidate.Name, sub)
+        else:
+            # Los cálculos también se abren al seleccionar una línea/parcela
+            # en el dibujo; la lista TRAZADOS es alternativa fiable.
+            info = self.view.getObjectInfo(pos) if hasattr(self.view, "getObjectInfo") else None
+            objname = info.get("Object") if isinstance(info, dict) else None
+            obj = self.doc.getObject(objname) if isinstance(objname, str) else None
+            if not self.ctrl_down:
+                Gui.Selection.clearSelection()
+            if obj is not None and hasattr(obj, "CoordenadasJSON"):
+                Gui.Selection.addSelection(obj)
 
     def _finish(self, a, b):
         if self.doc != App.ActiveDocument:
@@ -223,9 +264,31 @@ class _RectangleTool:
 
 
 _picker = _RectangleTool()
+_want_default = False
 
 
-def stop_active():
+def ensure_default():
+    """Restaurar selección rectangular al abrir/crear un levantamiento."""
+    if not _want_default or App.ActiveDocument is None:
+        return
+    from . import interactive_commands
+    if interactive_commands.is_active():
+        return
+    if _picker.doc == App.ActiveDocument and _picker.view is not None:
+        return
+    _picker.start()
+
+
+def activate_default():
+    global _want_default
+    _want_default = True
+    ensure_default()
+
+
+def stop_active(disable_default=True):
+    global _want_default
+    if disable_default:
+        _want_default = False
     _picker.stop()
 
 
@@ -246,7 +309,7 @@ class RectangleSelect:
         from .interactive_commands import stop_active as stop_point_tool
         stop_point_tool()
         try:
-            _picker.start()
+            activate_default()
         except (ValueError, RuntimeError, ImportError, AttributeError) as exc:
             QtWidgets.QMessageBox.warning(
                 Gui.getMainWindow(), "Selección por recuadro", str(exc)
