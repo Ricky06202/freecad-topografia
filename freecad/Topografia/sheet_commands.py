@@ -10,7 +10,7 @@ import FreeCADGui as Gui
 from PySide import QtCore, QtGui, QtSvg, QtWidgets
 
 from .commands import _selected_parcel, _points
-from .svg_report import create_svg, coordinate_annex_pages
+from .svg_report import create_svg, coordinate_annex_pages, traverse_annex_pages
 from .dxf_report import create_dxf
 from .ui_resources import icon_path
 
@@ -24,9 +24,10 @@ class PlanDialog(QtWidgets.QDialog):
         self.result = None
         form = QtWidgets.QFormLayout(self)
         help_text = QtWidgets.QLabel(
-            "Plano con cuadro de puntos y cajetín editable. "
-            "Elige una escala 1:N que quepa en la hoja y comprueba "
-            "la impresión al 100 %. El CRS debe verificarse."
+            "El plano incluye cuadro de coordenadas, cuadro de rumbos "
+            "y distancias, y cajetín con espacio en blanco para firma y sello. "
+            "Los cuadros largos continúan en anexos PDF. "
+            "Comprueba la escala al 100 % y verifica el CRS."
         )
         help_text.setWordWrap(True)
         form.addRow(help_text)
@@ -34,12 +35,16 @@ class PlanDialog(QtWidgets.QDialog):
         project = parcel.Document.getObject("ProyectoTopografia")
         values = {
             "titulo": parcel.Label,
+            "cliente": "",
+            "ubicacion": "",
             "autor": "Ing. Ricardo",
             "fecha": date.today().isoformat(),
             "crs": project.CRS if project else "No declarado",
         }
         for key, label in (
             ("titulo", "Título / proyecto"),
+            ("cliente", "Propietario / cliente"),
+            ("ubicacion", "Ubicación"),
             ("autor", "Elaborado por"),
             ("fecha", "Fecha"),
             ("crs", "Sistema de coordenadas"),
@@ -162,7 +167,7 @@ class CreateSheet:
         return {
             "Pixmap": icon_path("generar-plano"),
             "MenuText": "Generar plano",
-            "ToolTip": "Generar plano\nCuadro de puntos, cajetín, PDF, DXF o DWG",
+            "ToolTip": "Generar plano\nCoordenadas, rumbos, distancias, firma y sello",
             "StatusTip": "Crear plano con autor y tabla de coordenadas",
         }
 
@@ -207,9 +212,14 @@ class CreateSheet:
                 if fmt == "svg":
                     path.write_text(svg, encoding="utf-8")
                 else:
-                    _write_pdf(path, [svg] + coordinate_annex_pages(
+                    pages = [svg]
+                    pages.extend(coordinate_annex_pages(
                         points, parcel.Label, values
                     ))
+                    pages.extend(traverse_annex_pages(
+                        points, parcel.Label, values, closed=closed
+                    ))
+                    _write_pdf(path, pages)
             else:
                 dxf = create_dxf(
                     points, parcel.Label, values, closed=closed
@@ -218,11 +228,21 @@ class CreateSheet:
                     path.write_text(dxf, encoding="ascii", newline="")
                 else:
                     _write_dwg(path, dxf)
+            from .sheet_layout import VISIBLE_COORDS, VISIBLE_SIDES, side_rows
+            has_annex = (len(points) > VISIBLE_COORDS or
+                         len(side_rows(points, closed=closed)) > VISIBLE_SIDES)
+            extra = (
+                "\n\nNota: El SVG solo contiene la portada. "
+                "Usa PDF para imprimir todos los cuadros anexos."
+                if fmt == "svg" and has_annex else ""
+            )
             QtWidgets.QMessageBox.information(
                 Gui.getMainWindow(), "Plano generado",
                 "Se guardó el archivo:\n{}\n\n"
+                "El espacio de firma y sello se deja en blanco. "
                 "Comprueba la escala impresa al 100 %, el CRS y "
-                "las mediciones antes de entregar documentación técnica.".format(path)
+                "las mediciones antes de entregar documentación técnica.{}"
+                .format(path, extra)
             )
         except (OSError, ValueError, RuntimeError, subprocess.TimeoutExpired) as exc:
             QtWidgets.QMessageBox.critical(
