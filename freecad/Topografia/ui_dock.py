@@ -91,6 +91,22 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         )
         outer.addWidget(self.help)
 
+        marker_options = QtWidgets.QHBoxLayout()
+        marker_options.addWidget(QtWidgets.QLabel("Tamaño de puntos"))
+        self.point_size = QtWidgets.QSpinBox()
+        self.point_size.setObjectName("TopografiaTamanoPuntos")
+        self.point_size.setRange(8, 40)
+        self.point_size.setSuffix(" px")
+        self.point_size.setToolTip(
+            "Agrandar los marcadores en el dibujo sin cambiar sus coordenadas"
+        )
+        from .point_style import marker_size
+        self.point_size.setValue(marker_size())
+        self.point_size.valueChanged.connect(self.change_point_size)
+        marker_options.addWidget(self.point_size)
+        marker_options.addStretch()
+        outer.addLayout(marker_options)
+
         # Encabezados de navegación breves: la tabla recibe el espacio útil.
         header = QtWidgets.QHBoxLayout()
         parcels_col = QtWidgets.QVBoxLayout()
@@ -193,6 +209,12 @@ class ExplorerPanel(QtWidgets.QDockWidget):
         self.note.setWordWrap(True)
         outer.addWidget(self.note)
         self.refresh()
+
+    def change_point_size(self, value):
+        from .point_style import set_marker_size
+        set_marker_size(value)
+        if App.ActiveDocument:
+            App.ActiveDocument.recompute()
 
     def _select_object(self, obj):
         from .selection_bridge import note_clear

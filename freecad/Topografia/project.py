@@ -62,8 +62,8 @@ def add_catalog(doc, report, label, order):
     obj.ArchivoFuente = label
     obj.OrdenColumnas = order
     project.addObject(obj)
-    obj.ViewObject.PointSize = 12
-    obj.ViewObject.PointColor = (0.1, 0.3, 0.7)
+    from .point_style import apply_marker_style
+    apply_marker_style(obj)
     return obj
 
 
@@ -147,7 +147,8 @@ def write_catalog(doc, obj, rows, removed_index=None, removed_indices=None):
     cloud = Part.makeCompound(vertices)
 
     obj.Shape = cloud
-    obj.ViewObject.PointSize = 12
+    from .point_style import apply_marker_style
+    apply_marker_style(obj)
     obj.PuntosJSON = json.dumps(rows, ensure_ascii=False)
     for parcel, indices, points, stats, shape in links:
         parcel.Shape = shape
