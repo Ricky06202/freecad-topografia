@@ -169,7 +169,7 @@ class _RectangleTool:
         if drag:
             # Dejar que FreeCAD procese primero MouseUp y cierre su propio
             # estado de selección; después añadir nuestros subelementos.
-            # No setHandled() en ningún evento del ratón.
+            # El plugin no intercepta eventos del ratón.
             QtCore.QTimer.singleShot(
                 0, lambda: self._finish_after_native(doc, view, start, end, ctrl)
             )
