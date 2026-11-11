@@ -172,7 +172,7 @@ def write_catalog(doc, obj, rows, removed_index=None, removed_indices=None):
             parcel.AreaTerreno = stats["area_m2"] * 1000000
             parcel.PerimetroTerreno = stats["perimeter_m"] * 1000
             parcel.Hectareas = stats["area_ha"]
-            if hasattr(parcel, "GrupoRotulos") and parcel.GrupoRotulos:
-                from .annotations import refresh_annotations
-                refresh_annotations(parcel)
+        if hasattr(parcel, "GrupoRotulos") and parcel.GrupoRotulos:
+            from .annotations import refresh_annotations
+            refresh_annotations(parcel)
     doc.recompute()

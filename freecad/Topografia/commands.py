@@ -174,38 +174,30 @@ class MeasureParcel:
     def GetResources(self):
         return {
             "Pixmap": icon_path("medir-parcela"),
-            "MenuText": "Ver mediciones",
-            "ToolTip": "Medir parcela\nÁrea, hectáreas y perímetro horizontal",
-            "StatusTip": "Consultar mediciones de la parcela seleccionada",
+            "MenuText": "Medir en el dibujo",
+            "ToolTip": "Medir\nMostrar u ocultar distancias en cada lado y área en el centro",
+            "StatusTip": "Rotular directamente parcelas y líneas sin abrir ventanas",
         }
 
     def IsActive(self):
         return App.ActiveDocument is not None
 
     def Activated(self):
-        obj = _selected_parcel()
-        if obj is None:
+        trace = _selected_parcel()
+        if trace is None:
             return
         try:
-            if getattr(obj, "TipoTrazado", "") == "Abierto":
-                from .trace_math import measure_trace
-                stats = measure_trace(_points(obj))
-                message = (
-                    "Línea abierta · {} tramos\nLongitud horizontal: {:.3f} m\n"
-                    "No corresponde calcular área ni perímetro."
-                    .format(len(stats["tramos"]), stats["longitud_m"])
-                )
-            else:
-                result = measure(_points(obj))
-                message = (
-                    "Área horizontal: {:.3f} m²\nHectáreas: {:.5f} ha\n"
-                    "Perímetro horizontal: {:.3f} m".format(
-                        result["area_m2"], result["area_ha"], result["perimeter_m"]
-                    )
-                )
-            _message("Medición de " + obj.Label, message)
-        except (ValueError, TypeError, KeyError) as exc:
-            _message("Error al medir", str(exc), "critical")
+            from .annotations import show_or_toggle_measurements
+            shown = show_or_toggle_measurements(trace)
+            from .ui_dock import refresh_panel
+            refresh_panel()
+            Gui.getMainWindow().statusBar().showMessage(
+                ("Mediciones visibles en el dibujo" if shown else
+                 "Mediciones ocultas; pulsa Medir para volver a mostrarlas"),
+                6000
+            )
+        except Exception as exc:
+            _message("No se pudieron mostrar las mediciones", str(exc), "warning")
 
 
 class ExportPlan:

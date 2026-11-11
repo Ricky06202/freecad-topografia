@@ -54,10 +54,11 @@ def refresh_annotations(trace):
             font_mm * 1.05 if item["kind"] in ("area", "length") else
             font_mm * .75
         )
-        tag.ViewObject.TextColor = (
-            (0.05, 0.27, 0.38) if item["kind"] != "area"
-            else (0.03, 0.4, 0.23)
-        )
+        if hasattr(tag.ViewObject, "TextColor"):
+            tag.ViewObject.TextColor = (
+                (0.05, 0.27, 0.38) if item["kind"] != "area"
+                else (0.03, 0.4, 0.23)
+            )
         group.addObject(tag)
     doc.recompute()
     group.ViewObject.Visibility = was_visible
