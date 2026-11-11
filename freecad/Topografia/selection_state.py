@@ -41,6 +41,16 @@ class SelectionOrder:
             if key not in self._items:
                 self._items.append(key)
 
+    def reorder(self, doc, obj, indices):
+        """Modifica solo el orden de un conjunto ya seleccionado."""
+        from .selection_box_math import reorder_indices
+        doc, obj = str(doc), str(obj)
+        current = self.for_object(doc, obj)
+        ordered = reorder_indices(current, indices)
+        keys = {(doc, obj, idx) for idx in current}
+        self._items = [key for key in self._items if key not in keys]
+        self._items.extend((doc, obj, idx) for idx in ordered)
+
     def for_object(self, doc, obj):
         return [index for d, o, index in self._items
                 if d == str(doc) and o == str(obj)]

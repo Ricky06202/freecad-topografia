@@ -10,6 +10,26 @@ import FreeCADGui as Gui
 from .selection_state import SelectionOrder, vertex_index
 
 _order = SelectionOrder()
+_box_signature = None
+
+
+def mark_box_selection(catalog):
+    """Los vértices se han elegido como CONJUNTO; requieren ordenar la parcela."""
+    global _box_signature
+    _box_signature = (catalog.Document.Name, catalog.Name)
+
+
+def from_box_selection(catalog):
+    return (_box_signature == (catalog.Document.Name, catalog.Name))
+
+
+def reorder_selection(catalog, indices):
+    """Actualiza el orden de la selección que ve el usuario y los comandos."""
+    global _box_signature
+    sync()
+    _order.reorder(catalog.Document.Name, catalog.Name, indices)
+    _box_signature = None
+
 
 
 def _snapshot():
@@ -109,8 +129,12 @@ def note_remove(*args):
 
 
 def note_clear(*args):
+    global _box_signature
     _order.clear()
+    _box_signature = None
 
 
 def note_set(*args):
+    global _box_signature
+    _box_signature = None
     sync()

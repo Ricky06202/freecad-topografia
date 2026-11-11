@@ -21,6 +21,18 @@ class SelectionStateTests(unittest.TestCase):
         state.clear()
         self.assertEqual(state.items, [])
 
+    def test_reorder_explicit_selection(self):
+        state = SelectionOrder()
+        for idx in (2, 0, 4):
+            state.add("Doc", "Cloud", idx)
+        state.reorder("Doc", "Cloud", [4, 2, 0])
+        self.assertEqual(state.for_object("Doc", "Cloud"), [4, 2, 0])
+        state.sync([("Doc", "Cloud", 0), ("Doc", "Cloud", 2),
+                    ("Doc", "Cloud", 4)])
+        self.assertEqual(state.for_object("Doc", "Cloud"), [4, 2, 0])
+        with self.assertRaises(ValueError):
+            state.reorder("Doc", "Cloud", [4, 2, 2])
+
     def test_new_point_added_to_order(self):
         state = SelectionOrder()
         state.sync([("D", "C", 2)])
