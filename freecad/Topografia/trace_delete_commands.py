@@ -17,7 +17,7 @@ def selected_traces():
             o.Document != doc or not hasattr(o, "CoordenadasJSON")
             for o in selected):
         return []
-    return list(dict.fromkeys(selected))
+    return list({obj.Name: obj for obj in selected}.values())
 
 
 def delete_traces(doc, traces):
