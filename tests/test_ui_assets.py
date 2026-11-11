@@ -27,10 +27,9 @@ class UiAssetsTests(unittest.TestCase):
         for source_file in source_files:
             text = source_file.read_text(encoding="utf-8")
             referenced.update(re.findall(
-                r'icon_path\\(\\s*["\\\']([^"\\\']+)["\\\']\\s*\\)',
+                r"icon_path\(\s*['\"]([^'\"]+)['\"]\s*\)",
                 text
-            ))
-        self.assertTrue(referenced, "No se detectaron iconos de comandos")
+            ))        self.assertTrue(referenced, "No se detectaron iconos de comandos")
         for name in sorted(referenced):
             with self.subTest(command_icon=name):
                 self.assertTrue(
