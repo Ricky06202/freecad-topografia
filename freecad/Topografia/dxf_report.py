@@ -5,6 +5,7 @@ No convierte a DWG; FreeCAD requiere conversor externo para dicho formato.
 """
 import unicodedata
 from .geometry import measure
+from .trace_math import measure_trace
 
 
 def _name(value):
@@ -14,8 +15,8 @@ def _name(value):
     return " ".join(value.replace("\r", " ").replace("\n", " ").split())[:100]
 
 
-def create_dxf(points, title="Parcela", metadata=None):
-    stats = measure(points)
+def create_dxf(points, title="Parcela", metadata=None, closed=True):
+    stats = measure(points) if closed else measure_trace(points)
     metadata = metadata or {}
     size = max(
         max(p.x for p in points) - min(p.x for p in points),
@@ -30,7 +31,8 @@ def create_dxf(points, title="Parcela", metadata=None):
         "0", "SECTION", "2", "TABLES",
         "0", "ENDSEC",
         "0", "SECTION", "2", "ENTITIES",
-        "0", "LWPOLYLINE", "8", "PARCELA", "90", str(len(points)), "70", "1",
+        "0", "LWPOLYLINE", "8", "PARCELA" if closed else "CALLE",
+        "90", str(len(points)), "70", "1" if closed else "0",
     ]
     for point in points:
         rows.extend(["10", "{:.8f}".format(point.x), "20", "{:.8f}".format(point.y)])
@@ -56,8 +58,10 @@ def create_dxf(points, title="Parcela", metadata=None):
         "ELABORADO POR: {}".format(metadata.get("autor") or "Sin especificar"),
         "FECHA: {}".format(metadata.get("fecha") or "Sin especificar"),
         "CRS: {}".format(metadata.get("crs") or "No declarado"),
-        "AREA HORIZONTAL: {:.3f} m2".format(stats["area_m2"]),
-        "PERIMETRO: {:.3f} m".format(stats["perimeter_m"]),
+        ("AREA HORIZONTAL: {:.3f} m2".format(stats["area_m2"])
+         if closed else "TRAZADO ABIERTO SIN AREA"),
+        ("PERIMETRO: {:.3f} m".format(stats["perimeter_m"])
+         if closed else "LONGITUD: {:.3f} m".format(stats["longitud_m"])),
         "CUADRO DE PUNTOS (metros)",
         "PUNTO    ESTE (X)       NORTE (Y)       COTA",
     ]
