@@ -201,8 +201,9 @@ class CreateSheet:
                 return
         try:
             points = _points(parcel)
+            closed = getattr(parcel, "TipoTrazado", "") != "Abierto"
             if fmt in ("svg", "pdf"):
-                svg = create_svg(points, parcel.Label, values)
+                svg = create_svg(points, parcel.Label, values, closed=closed)
                 if fmt == "svg":
                     path.write_text(svg, encoding="utf-8")
                 else:
@@ -210,7 +211,9 @@ class CreateSheet:
                         points, parcel.Label, values
                     ))
             else:
-                dxf = create_dxf(points, parcel.Label, values)
+                dxf = create_dxf(
+                    points, parcel.Label, values, closed=closed
+                )
                 if fmt == "dxf":
                     path.write_text(dxf, encoding="ascii", newline="")
                 else:

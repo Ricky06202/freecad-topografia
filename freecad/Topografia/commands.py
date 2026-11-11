@@ -34,7 +34,7 @@ def _selected_parcel():
         parcels = [obj for obj in doc.Objects if hasattr(obj, "CoordenadasJSON")]
         if len(parcels) == 1:
             return parcels[0]
-    _message("Topografía", "Selecciona una parcela en el árbol del documento.")
+    _message("Topografía", "Selecciona una parcela o una línea abierta en el árbol del documento.")
     return None
 
 
@@ -187,14 +187,23 @@ class MeasureParcel:
         if obj is None:
             return
         try:
-            result = measure(_points(obj))
-            _message(
-                "Medición de " + obj.Label,
-                "Área horizontal: {:.3f} m²\nHectáreas: {:.5f} ha\n"
-                "Perímetro horizontal: {:.3f} m".format(
-                    result["area_m2"], result["area_ha"], result["perimeter_m"]
+            if getattr(obj, "TipoTrazado", "") == "Abierto":
+                from .trace_math import measure_trace
+                stats = measure_trace(_points(obj))
+                message = (
+                    "Línea abierta · {} tramos\nLongitud horizontal: {:.3f} m\n"
+                    "No corresponde calcular área ni perímetro."
+                    .format(len(stats["tramos"]), stats["longitud_m"])
                 )
-            )
+            else:
+                result = measure(_points(obj))
+                message = (
+                    "Área horizontal: {:.3f} m²\nHectáreas: {:.5f} ha\n"
+                    "Perímetro horizontal: {:.3f} m".format(
+                        result["area_m2"], result["area_ha"], result["perimeter_m"]
+                    )
+                )
+            _message("Medición de " + obj.Label, message)
         except (ValueError, TypeError, KeyError) as exc:
             _message("Error al medir", str(exc), "critical")
 
@@ -225,7 +234,10 @@ class ExportPlan:
             path += ".svg"
         try:
             with open(path, "w", encoding="utf-8") as handle:
-                handle.write(create_svg(_points(obj), obj.Label))
+                handle.write(create_svg(
+                    _points(obj), obj.Label,
+                    closed=getattr(obj, "TipoTrazado", "") != "Abierto"
+                ))
             _message("Plano guardado", "Guardado en:\n{}\n\nPara convertirlo en PDF, "
                      "abre el SVG en un navegador e imprime como PDF.".format(path))
         except (OSError, ValueError, TypeError, KeyError) as exc:
