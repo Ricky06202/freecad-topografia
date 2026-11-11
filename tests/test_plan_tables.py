@@ -90,13 +90,13 @@ class PlanTablesTests(unittest.TestCase):
         self.assertIn("UBICACION: David, Chiriqui", dxf)
         self.assertIn("FIRMA Y SELLO: (espacio en blanco)", dxf)
         self.assertIn("CAJETIN_FIRMA", dxf)
-        self.assertIn("P4  P1", dxf)  # cerrado
+        self.assertIn("P4 P1", dxf)  # cerrado
 
     def test_open_dxf_no_fake_closing_tramo(self):
         dxf = create_dxf(self.p[:3], closed=False)
-        self.assertIn("P1  P2", dxf)
-        self.assertIn("P2  P3", dxf)
-        self.assertNotIn("P3  P1", dxf)
+        self.assertIn("P1 P2", dxf)
+        self.assertIn("P2 P3", dxf)
+        self.assertNotIn("P3 P1", dxf)
 
 
 if __name__ == "__main__":
