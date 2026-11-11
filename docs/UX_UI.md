@@ -137,3 +137,13 @@ El asistente de Trazar permite ordenar los puntos antes de guardar, sin añadir 
 **Planos:** SVG/PDF muestran un segmento abierto (sin comando de cierre Z), norte, cajetín y longitud; DXF escribe `LWPOLYLINE` con bandera `70=0`. Las parcelas conservan `70=1` y sus mediciones. Los menús secundarios mantienen herramientas COGO, terrenos y mediciones avanzadas, sin saturar la barra.
 
 **Verificación necesaria:** pruebas unitarias de calle abierta con 2 y 3 puntos, geometría/longitud, SVG válido sin cierre, DXF sin bandera cerrada y regresión de parcelas; GitHub Actions aprobado no sustituye la prueba de GUI FreeCAD. Comprobar manualmente que se crean dos bordes sin área, se pueden editar y exportar, y la barra solo presenta los cuatro iconos principales. **Limitaciones:** los trazos son rectilíneos; aún no se generan anchos de calle, offsets o curvas de alineación automáticos.
+
+## Decisión 0.9 — dos cuadros y cajetín para imprimir
+
+**Pregunta del usuario:** «¿Por qué coordenadas y no rumbos y distancias?» Se establece que el plano debe contener **ambos**, porque las coordenadas definen la posición de los puntos en un sistema de referencia y los rumbos/distancias documentan los lados. Para calles abiertas, no se agregan lados de cierre.
+
+**Impresión:** una portada A4 horizontal con dibujo, norte, cuadro de coordenadas (7 filas), cuadro de rumbos/distancias (8 tramos) y un **cajetín con proyecto, cliente, ubicación, fecha, escala, CRS, autor y espacio físico en blanco para firma y sello**. Los números de punto en el dibujo deben corresponder al cuadro.
+
+**Sin multiplicar botones:** se agregan campos opcionales al asistente **Generar plano** existente, no un quinto botón en la barra principal de cuatro. PDF incluye anexos paginados de todas las coordenadas y tramos restantes; SVG solo portada con aviso si hay anexos; DXF/DWG incluye cuadros completos como entidades editables y línea para firma.
+
+**Limitaciones:** diseñador de plantilla no homologado y rumbos/azimuts planos de coordenadas proyectadas; no validar rumbos magnéticos ni CRS sin dato explícito. Firma y sello nunca se rellenan ni se simulan. La interfaz y PDF deben probarse en FreeCAD instalado del usuario.

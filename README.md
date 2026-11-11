@@ -2,7 +2,24 @@
 
 Banco de trabajo (Workbench) para dibujar líneas abiertas (calles, caminos y ejes), parcelas cerradas y consultar longitudes, área y perímetro. Interfaz en español; proyecto piloto para uso personal.
 
-> Estado: prototipo 0.8. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+> Estado: prototipo 0.9. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+
+## Cuadros de plano para imprimir — Topografía 0.9
+
+Al pulsar **Generar plano**, un único asistente pide **Título del proyecto**, **Propietario/cliente**, **Ubicación**, **Elaborado por**, **Fecha**, **CRS**, **Formato** y **Escala**. El cajetín inferior incluye un **espacio vacío para firma y sello**: no se generan firmas ni se presentan documentos sin revisar como certificados.
+
+La **portada A4 horizontal** contiene dos cuadros independientes:
+
+1. **Cuadro de coordenadas:** Punto, Este, Norte y Cota (m). Incluye hasta **7 estaciones** en la portada.
+2. **Cuadro de rumbos y distancias:** Desde–Hasta, rumbo cuadrantal y distancia horizontal (m). Incluye hasta **8 tramos** en la portada.
+
+Al elegir **PDF** se generan hojas anexas automáticas con **todas las estaciones y todos los tramos restantes**, sin truncar las listas. En **SVG** solo se genera la primera hoja: si existen anexos, el asistente recomienda PDF. En **DXF/DWG**, los dos cuadros y el cajetín se incluyen como textos/entidades editables; DWG requiere un conversor externo como antes.
+
+Las parcelas cerradas incluyen el **último tramo de regreso al primer vértice**, área y perímetro. Los trazados abiertos de calles **no inventan ese tramo**, ni un área ficticia: incluyen solo su longitud y los tramos existentes.
+
+**Distinción topográfica:** las coordenadas ubican cada vértice respecto al sistema declarado; los rumbos y distancias describen cómo ir de un vértice al siguiente. Son complementarios y ambos aportan valor. El plugin calcula rumbos *planos* a partir de Este/Norte, sin convertir automáticamente rumbos magnéticos ni certificar el CRS.
+
+**Verificación pendiente:** controles de escala A4 a tamaño real (imprimir al 100 %), legibilidad de tablas, compatibilidad del escritor PDF de Qt y plantilla de firma dentro de FreeCAD. Nunca usar el campo «Elaborado por» ni el espacio de firma como sustituto de la firma real y revisión profesional.
 
 ## Trazar calles, caminos o parcelas — Topografía 0.8
 
