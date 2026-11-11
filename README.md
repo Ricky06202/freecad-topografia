@@ -2,7 +2,15 @@
 
 Banco de trabajo (Workbench) para dibujar líneas abiertas (calles, caminos y ejes), parcelas cerradas y consultar longitudes, área y perímetro. Interfaz en español; proyecto piloto para uso personal.
 
-> Estado: prototipo 0.9.3. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+> Estado: prototipo 0.9.4. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+
+## Corrección del ratón y escalado proporcional de etiquetas — Topografía 0.9.4
+
+**Clic y recuadro:** en 0.9.3, al arrastrar, el visor recibía la pulsación pero no la liberación del ratón, porque el complemento marcaba `MouseUp` como atendido. Esto podía dejar el modo de selección atrapado. En 0.9.4 no se consume **ningún evento de ratón**. Al pulsar sobre un punto, una línea o la cara de una parcela, la selección es íntegramente nativa. El recuadro empieza solamente cuando se arrastra desde espacio vacío (detección Pivy de geometría bajo el cursor), y se aplica después de que FreeCAD termine de procesar `MouseUp` mediante una tarea Qt diferida. El botón derecho y la navegación siguen siendo nativos.
+
+**Etiquetas autoescalables:** el complemento calcula el tamaño en metros respecto a la extensión de la parcela, la longitud de los segmentos y el contenido de cada rótulo. Lo transforma a milímetros al escribir `Draft.Text.FontSize`; como es texto en modo World, los rótulos cambian visualmente con el zoom junto con el plano. Se retiraron los límites rígidos 180–1400 mm y se ajusta la distancia de texto a líneas y vértices según la altura de la fuente. Para actualizar rótulos **ya creados**, pulsa Medir para ocultar y otra vez para mostrar: se regeneran al volver a mostrarlos.
+
+**Prueba real obligatoria en FreeCAD 1.1:** hacer clic sobre vértice, arista y cara, soltar y mover el cursor sin que permanezca arrastrando; después seleccionar vértices con un recuadro iniciado en fondo vacío. Comprobar etiquetas en parcelas de tamaño diferente y con zoom distinto. Las pruebas automáticas validan secuencias del ratón y tamaños relativos, pero no reproducen el visor Coin/Pivy real.
 
 ## Selección estable, eliminar trazados y medir en el dibujo — Topografía 0.9.3
 
