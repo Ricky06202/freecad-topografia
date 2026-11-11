@@ -111,13 +111,13 @@ def title_block(metadata, closed, stats):
     scale = metadata.get("escala")
     scale_label = (
         "1:{}".format(scale) if scale not in (None, "", "auto")
-        else "Esquemática"
+        else "esquemática (no acotada)"
     )
     stat = (
         "Área: {:.3f} m² · Perímetro: {:.3f} m".format(
             stats["area_m2"], stats["perimeter_m"]
         ) if closed else
-        "Longitud abierta: {:.3f} m".format(stats["longitud_m"])
+        "Longitud: {:.3f} m (sin superficie)".format(stats["longitud_m"])
     )
     out = [
         _rect(55, 631, 1030, 132),
@@ -133,7 +133,7 @@ def title_block(metadata, closed, stats):
         _text(397, 695, "CRS: " + crs, 10),
         _text(397, 716, stat, 10),
         _text(397, 740, "Revisión técnica y medidas obligatorias", 9),
-        _text(749, 650, "ELABORADO POR", 12, "bold"),
+        _text(749, 650, "Elaborado por", 12, "bold"),
         _text(749, 673, author, 12),
         _line(773, 728, 1035, 728, "#203b48"),
         _text(773, 742, "Firma y sello (pendientes)", 10),
