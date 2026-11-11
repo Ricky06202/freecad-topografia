@@ -2,13 +2,28 @@
 
 Banco de trabajo (Workbench) para dibujar líneas abiertas (calles, caminos y ejes), parcelas cerradas y consultar longitudes, área y perímetro. Interfaz en español; proyecto piloto para uso personal.
 
-> Estado: prototipo 0.9.1. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+> Estado: prototipo 0.9.2. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+
+## Barra de acciones inteligentes — Topografía 0.9.2
+
+Por petición del usuario se eliminó el **submenú «Topografía» del clic derecho**, porque parecía una carpeta incómoda. En su lugar, **los botones aparecen automáticamente en la parte superior cuando hay una selección** y se ocultan cuando no hay nada seleccionado. La barra principal continúa con cuatro botones fijos; la barra de acciones inteligentes no ocupa espacio en reposo.
+
+| Selección en el visor o árbol | Botones que aparecen arriba |
+|---|---|
+| **Un vértice** | **Editar**, **Mover**, **Eliminar** |
+| **Varios vértices** del mismo levantamiento | **Trazar**, **Eliminar** |
+| **Una parcela o línea abierta** | **Mediciones**, **Plano** |
+| Nada seleccionado o selección ambigua | **No aparece la barra contextual** |
+
+Los botones tienen iconos, texto corto y descripciones al pasar el ratón. Las operaciones utilizan la misma selección que el visor. Eliminar sigue mostrando confirmación y no permite borrar puntos utilizados por trazados vinculados. El menú contextual estándar de FreeCAD continúa sin nuestro submenú adicional.
+
+La barra inteligente observa la selección aun cuando se oculte el panel lateral, agrupa actualizaciones de grandes selecciones rectangulares para no congelar FreeCAD y se oculta al cambiar de banco de trabajo. **Prueba en FreeCAD 1.1 pendiente**: seleccionar/deseleccionar, mover puntos, probar el árbol, alternar bancos de trabajo y asegurar que los botones no se dupliquen. Las pruebas de GitHub verifican la lógica y visibilidad con objetos simulados, no sustituyen el ensayo real de interfaz.
 
 ## Selección y clic derecho familiar — Topografía 0.9.1
 
 La herramienta principal de selección es **Seleccionar por recuadro**, que permite tanto clic individual como arrastrar un rectángulo para incluir varios puntos. La pestaña **Mediciones** se muestra de forma predeterminada: para ver resultados, selecciona la parcela o línea en **TRAZADOS**, y el panel mostrará área y perímetro (parcela) o longitud y tramos (línea abierta).
 
-Al hacer **clic derecho** en FreeCAD con una selección previa, aparece el submenú nativo **Topografía** con las acciones correspondientes:
+En Topografía 0.9.1, el **clic derecho** añadía un submenú; **en 0.9.2 ese submenú se reemplazó por la barra inteligente superior** con las acciones correspondientes:
 
 - **Un vértice**: Editar punto, Reubicar punto, Eliminar puntos.
 - **Dos o más vértices del mismo levantamiento**: Trazar (abierto o cerrado), Eliminar puntos seleccionados.
@@ -16,7 +31,7 @@ Al hacer **clic derecho** en FreeCAD con una selección previa, aparece el subme
 
 No se ofrece borrado cuando no hay vértices seleccionados ni cuando la selección es mixta/ambigua. Eliminar siempre solicita confirmación y protege estaciones que pertenecen a trazados vinculados. **No se añaden botones** a la barra principal.
 
-Esta función usa el menú contextual **nativo de FreeCAD**, compatible con el método de workbench Python `ContextMenu(recipient)`. Requiere probarse manualmente en FreeCAD 1.1, tanto desde el visor como desde el árbol.
+La barra actual usa un observador de selección de FreeCAD y botones contextuales de Qt. Requiere prueba manual en FreeCAD 1.1.
 
 ## Cuadros de plano para imprimir — Topografía 0.9
 

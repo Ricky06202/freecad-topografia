@@ -155,3 +155,16 @@ El usuario comprobó la existencia de «Mediciones» y pidió que **esa pestaña
 El Workbench implementa `ContextMenu(recipient)` y consulta la selección real de FreeCAD. Si hay un solo vértice de catálogo ofrece **Editar · Reubicar · Eliminar**; con varios del mismo levantamiento ofrece **Trazar · Eliminar**; con una línea/parcela ofrece **Ver mediciones · Generar plano**. Una selección mixta o de objetos sin vértices evita acciones destructivas ambiguas. No agrega más botones visibles. El borrado mantiene su diálogo de confirmación.
 
 **Pruebas pendientes en GUI:** verificar que el menú aparece con clic derecho en el visor de FreeCAD 1.1 después de seleccionar un vértice, que no se pierde la selección, que mover abre el modo de reubicación y al terminar vuelve al selector por recuadro, y que el panel se abre en «Mediciones». También probar el menú sobre una calle abierta y desde el árbol de objetos. La CI sin FreeCAD valida la clasificación de acciones y la presencia de `ContextMenu`, pero no la integración visual real.
+
+## Decisión 0.9.2 — barra contextual, sin carpeta en clic derecho
+
+El usuario rechazó expresamente el submenú en forma de carpeta del clic derecho. Prefiere una **franja superior de botones que aparezcan según la situación** y que no esté permanentemente ocupando espacio. Se sustituyó `TopografiaWorkbench.ContextMenu` por una barra Qt `TopografiaContextToolbar` que observa la selección nativa y se oculta si no hay selección relevante; la barra principal de cuatro botones no cambia.
+
+- Un punto: Editar · Mover · Eliminar
+- Varios puntos del mismo levantamiento: Trazar · Eliminar
+- Una línea/parcela: Mediciones · Plano
+- Selección vacía, mixta o ambigua: ningún botón contextual
+
+La barra muestra textos cortos junto a iconos, se desactiva al cambiar Workbench, escucha selecciones independientemente del panel lateral y agrupa notificaciones durante selecciones rectangulares masivas. El clic derecho normal de FreeCAD sigue disponible, sin menú especial añadido por el complemento.
+
+**Pendiente:** revisar con el usuario en FreeCAD 1.1 el comportamiento real, que editar/mover respeta la selección y que la barra no se duplica ni roba espacio cuando está vacía. Pruebas simuladas no validan Qt/Pivy reales.
