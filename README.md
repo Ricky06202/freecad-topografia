@@ -2,7 +2,7 @@
 
 Banco de trabajo (Workbench) para dibujar líneas abiertas (calles, caminos y ejes), parcelas cerradas y consultar longitudes, área y perímetro. Interfaz en español; proyecto piloto para uso personal.
 
-> Estado: prototipo 0.9.5. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+> Estado: prototipo 0.9.6. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
 
 ## Añadir puntos por rumbo, dirección, sentido y distancia — Topografía 0.9.5
 
@@ -135,6 +135,8 @@ El banco de trabajo ahora permite **trazados abiertos**. No hace falta cerrar la
 5. Copia la carpeta descomprimida completa a `Mod/` y cámbiale el nombre a `freecad-topografia` si hace falta. Verifica que exista **`Mod/freecad-topografia/package.xml`** y dentro **`Mod/freecad-topografia/freecad/Topografia/init_gui.py`**. Evita una carpeta duplicada `freecad-topografia/freecad-topografia/`.
 6. Cierra **completamente** FreeCAD, vuelve a abrirlo y selecciona **Topografía** en el selector de bancos de trabajo, junto a Part y Part Design.
 7. Pulsa **Crear parcela**, pega los cuatro puntos de ejemplo (abajo), acepta y comprueba **Área = 50 m²** y **Perímetro = 30 m** con **Medir parcela**.
+
+La versión 0.9.6 incorpora la lectura ASC con descripción final, etiquetas de puntos y la exportación de puntos y trazados topográficos visibles. La prueba visual de esta versión en FreeCAD sigue pendiente.
 
 ### Alternativa: instalar con Git
 
