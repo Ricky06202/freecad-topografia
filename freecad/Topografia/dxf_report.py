@@ -16,7 +16,7 @@ def _name(value):
     return " ".join(value.replace("\r", " ").replace("\n", " ").split())[:100]
 
 
-def create_dxf(points, title="Parcela", metadata=None, closed=True):
+def create_dxf(points, title="Parcela", metadata=None, closed=True, scene_traces=None, scene_points=None):
     stats = measure(points) if closed else measure_trace(points)
     metadata = metadata or {}
     size = max(
@@ -49,9 +49,23 @@ def create_dxf(points, title="Parcela", metadata=None, closed=True):
             "40", "{:.4f}".format(height),
             "1", _name(point.name),
         ])
+    for trace, is_closed in (scene_traces or []):
+        rows.extend(["0", "LWPOLYLINE", "8", "TRAZADOS", "90", str(len(trace)), "70", "1" if is_closed else "0"])
+        for point in trace:
+            rows.extend(["10", "{:.8f}".format(point.x), "20", "{:.8f}".format(point.y)])
+    seen = {(p.name, p.x, p.y) for p in points}
+    for point in list(scene_points or []) + [p for trace, _ in (scene_traces or []) for p in trace]:
+        if (point.name, point.x, point.y) in seen:
+            continue
+        seen.add((point.name, point.x, point.y))
+        rows.extend(["0", "POINT", "8", "VERTICES", "10", "{:.8f}".format(point.x),
+                     "20", "{:.8f}".format(point.y), "30", "0.0", "0", "TEXT", "8", "ETIQUETAS",
+                     "10", "{:.8f}".format(point.x + height / 2), "20", "{:.8f}".format(point.y + height / 2),
+                     "40", "{:.4f}".format(height), "1", _name(point.name)])
     # Cajetín CAD simplificado a la derecha de la parcela: entidades editables.
-    x1 = max(p.x for p in points)
-    y1 = max(p.y for p in points)
+    all_points = list(points) + list(scene_points or []) + [p for trace, _ in (scene_traces or []) for p in trace]
+    x1 = max(p.x for p in all_points)
+    y1 = max(p.y for p in all_points)
     start_x = x1 + max(height * 5, size * 0.1)
     start_y = y1
     labels = [

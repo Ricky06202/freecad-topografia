@@ -13,6 +13,7 @@ from .commands import _selected_parcel, _points
 from .svg_report import create_svg, coordinate_annex_pages, traverse_annex_pages
 from .dxf_report import create_dxf
 from .ui_resources import icon_path
+from .sheet_scene import collect_scene
 
 
 class PlanDialog(QtWidgets.QDialog):
@@ -24,6 +25,8 @@ class PlanDialog(QtWidgets.QDialog):
         self.result = None
         form = QtWidgets.QFormLayout(self)
         help_text = QtWidgets.QLabel(
+            "El dibujo incluye los puntos y trazados topográficos visibles. "
+            "Los cuadros y mediciones corresponden al trazado seleccionado. "
             "El plano incluye cuadro de coordenadas, cuadro de rumbos "
             "y distancias, y cajetín con espacio en blanco para firma y sello. "
             "Los cuadros largos continúan en anexos PDF. "
@@ -175,8 +178,25 @@ class CreateSheet:
         return App.ActiveDocument is not None
 
     def Activated(self):
-        parcel = _selected_parcel()
+        selected = [obj for obj in Gui.Selection.getSelection()
+                    if hasattr(obj, 'CoordenadasJSON') and obj.ViewObject.Visibility]
+        visible = [obj for obj in App.ActiveDocument.Objects
+                   if hasattr(obj, 'CoordenadasJSON') and obj.ViewObject.Visibility]
+        parcel = (selected or visible or [None])[0]
         if parcel is None:
+            QtWidgets.QMessageBox.warning(Gui.getMainWindow(), "Generar plano",
+                                          "Necesitas al menos un trazado visible.")
+            return
+        try:
+            scene_traces, scene_points, unsupported = collect_scene(parcel.Document, parcel)
+        except (ValueError, KeyError, TypeError) as exc:
+            QtWidgets.QMessageBox.critical(Gui.getMainWindow(), "No se pudo leer el dibujo", str(exc))
+            return
+        if unsupported:
+            QtWidgets.QMessageBox.warning(
+                Gui.getMainWindow(), "Elementos no compatibles",
+                "El plano todavía no admite estos objetos visibles: {}. "
+                "No se generó el archivo para evitar omitir contenido.".format(', '.join(unsupported[:10])))
             return
         dialog = PlanDialog(parcel)
         if dialog.exec() != QtWidgets.QDialog.Accepted:
@@ -208,7 +228,8 @@ class CreateSheet:
             points = _points(parcel)
             closed = getattr(parcel, "TipoTrazado", "") != "Abierto"
             if fmt in ("svg", "pdf"):
-                svg = create_svg(points, parcel.Label, values, closed=closed)
+                svg = create_svg(points, parcel.Label, values, closed=closed,
+                                 scene_traces=scene_traces, scene_points=scene_points)
                 if fmt == "svg":
                     path.write_text(svg, encoding="utf-8")
                 else:
@@ -222,7 +243,8 @@ class CreateSheet:
                     _write_pdf(path, pages)
             else:
                 dxf = create_dxf(
-                    points, parcel.Label, values, closed=closed
+                    points, parcel.Label, values, closed=closed,
+                    scene_traces=scene_traces, scene_points=scene_points
                 )
                 if fmt == "dxf":
                     path.write_text(dxf, encoding="ascii", newline="")
