@@ -70,12 +70,19 @@ def _point_row(line, order):
         return None
     try:
         first, second, elevation = map(float, items[-3:])
+        description = ' '.join(items[1:-3])
     except ValueError:
-        return None
+        # Algunos ASC colocan la descripción después de ID, N, E, Z.
+        if ',' not in stripped or len(items) != 5:
+            return None
+        try:
+            first, second, elevation = map(float, items[1:4])
+        except ValueError:
+            return None
+        description = items[4]
     if not all(math.isfinite(v) for v in (first, second, elevation)):
         return None
     name = items[0]
-    description = ' '.join(items[1:-3])
     easting, northing = (second, first) if order == 'NE' else (first, second)
     return Point(name=name, x=easting, y=northing, z=elevation), description
 
