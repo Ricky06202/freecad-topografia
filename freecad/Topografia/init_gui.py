@@ -76,6 +76,8 @@ class TopografiaWorkbench(FreeCADGui.Workbench):
 
     def Activated(self):
         from freecad.Topografia import interactive_commands, box_select_commands, ui_dock
+        from freecad.Topografia import point_labels
+        point_labels.activate()
         interactive_commands.stop_active()
         box_select_commands.stop_active()
         # El selector rectangular es predeterminado al entrar en Topografía.
