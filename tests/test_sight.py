@@ -50,6 +50,13 @@ class SightTests(unittest.TestCase):
         self.assertEqual(report.points[1][0].y, -32.22)
         self.assertEqual(report.closed_traverses(), [])
 
+    def test_ascii_description_after_coordinates(self):
+        report = parse_sight('1,100,200,3,--------\n2,101,201,4,poste\n3,102,202,5,\n')
+        self.assertEqual(len(report.points), 3)
+        self.assertEqual(report.points[0][0], Point('1', 200, 100, 3))
+        self.assertEqual(report.points[1][1], 'poste')
+        self.assertEqual(report.traverses, [])
+
     def test_arcs_are_not_silently_chords(self):
         report = parse_sight(
             "Go to\n1\t0\t0\t0\n"
