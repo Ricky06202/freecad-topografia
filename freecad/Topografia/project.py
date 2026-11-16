@@ -64,6 +64,8 @@ def add_catalog(doc, report, label, order):
     project.addObject(obj)
     from .point_style import apply_marker_style
     apply_marker_style(obj)
+    from .point_labels import refresh
+    refresh(obj, project, json.loads(obj.PuntosJSON))
     return obj
 
 
@@ -160,6 +162,8 @@ def write_catalog(doc, obj, rows, removed_index=None, removed_indices=None):
     from .point_style import apply_marker_style
     apply_marker_style(obj)
     obj.PuntosJSON = json.dumps(rows, ensure_ascii=False)
+    from .point_labels import refresh
+    refresh(obj, project, rows)
     for parcel, indices, points, stats, shape, is_open in links:
         parcel.Shape = shape
         parcel.IndicesPuntosJSON = json.dumps(indices)
