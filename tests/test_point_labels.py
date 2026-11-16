@@ -12,7 +12,7 @@ class Field:
 class Node:
     def __init__(self):
         self.children = []
-        for name in ('translation', 'string', 'style', 'rgb', 'size'):
+        for name in ('translation', 'string', 'style', 'rgb', 'size', 'name'):
             setattr(self, name, Field())
 
     def addChild(self, node):
@@ -39,6 +39,7 @@ class PointLabelsTests(unittest.TestCase):
             self.assertEqual(root.children[0].children[-1].children[-1].string.value, ('1',))
             point_labels.refresh(catalog, project, [dict(nombre='2', este=102, norte=203, cota=4)])
             self.assertEqual(len(root.children), 1)
+            self.assertIn('Bold', root.children[0].children[2].name.value[0])
             group = root.children[0].children[-1]
             self.assertEqual(group.children[0].translation.value, (2000.0, 3000.0, 4000.0))
             self.assertEqual(group.children[-1].string.value, ('2',))

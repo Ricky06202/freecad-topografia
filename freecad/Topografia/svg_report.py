@@ -13,13 +13,13 @@ from .sheet_layout import (
 )
 
 
-def create_svg(points, label="Parcela", metadata=None, closed=True, scene_traces=None, scene_points=None):
+def create_svg(points, label="Parcela", metadata=None, closed=True, scene_traces=None, scene_points=None, scene_texts=None):
     metadata = metadata or {}
     metrics = measure(points) if closed else measure_trace(points)
     segments = side_rows(points, closed=closed)
     scene_traces = scene_traces or []
     scene_points = scene_points or []
-    all_points = list(points) + list(scene_points) + [p for trace, _ in scene_traces for p in trace]
+    all_points = list(points) + list(scene_points) + [p for trace, _ in scene_traces for p in trace] + [type(points[0])("", x, y) for _, x, y in (scene_texts or [])]
     x0, x1 = min(p.x for p in all_points), max(p.x for p in all_points)
     y0, y1 = min(p.y for p in all_points), max(p.y for p in all_points)
     width, height = x1 - x0, y1 - y0
@@ -107,6 +107,9 @@ def create_svg(points, label="Parcela", metadata=None, closed=True, scene_traces
         x, y = xy(p)
         rows.append('<circle cx="{:.2f}" cy="{:.2f}" r="5" fill="#087b72"/>'.format(x, y))
         rows.append('<text x="{:.2f}" y="{:.2f}" font-family="sans-serif" font-size="14" fill="#123">{}</text>'.format(x+8, y-10, escape(p.name)))
+    for text, east, north in (scene_texts or []):
+        x, y = xy(type(points[0])("", east, north))
+        rows.append('<text x="{:.2f}" y="{:.2f}" font-family="sans-serif" font-size="12" fill="#123">{}</text>'.format(x, y, escape(text)))
     rows.extend(front_tables(points, closed=closed))
     rows.extend(title_block(metadata, closed, metrics))
     rows.append('</svg>')
