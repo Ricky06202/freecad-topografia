@@ -188,7 +188,7 @@ class CreateSheet:
                                           "Necesitas al menos un trazado visible.")
             return
         try:
-            scene_traces, scene_points, unsupported = collect_scene(parcel.Document, parcel)
+            scene_traces, scene_points, scene_texts, unsupported = collect_scene(parcel.Document, parcel)
         except (ValueError, KeyError, TypeError) as exc:
             QtWidgets.QMessageBox.critical(Gui.getMainWindow(), "No se pudo leer el dibujo", str(exc))
             return
@@ -229,7 +229,7 @@ class CreateSheet:
             closed = getattr(parcel, "TipoTrazado", "") != "Abierto"
             if fmt in ("svg", "pdf"):
                 svg = create_svg(points, parcel.Label, values, closed=closed,
-                                 scene_traces=scene_traces, scene_points=scene_points)
+                                 scene_traces=scene_traces, scene_points=scene_points, scene_texts=scene_texts)
                 if fmt == "svg":
                     path.write_text(svg, encoding="utf-8")
                 else:
@@ -244,7 +244,7 @@ class CreateSheet:
             else:
                 dxf = create_dxf(
                     points, parcel.Label, values, closed=closed,
-                    scene_traces=scene_traces, scene_points=scene_points
+                    scene_traces=scene_traces, scene_points=scene_points, scene_texts=scene_texts
                 )
                 if fmt == "dxf":
                     path.write_text(dxf, encoding="ascii", newline="")

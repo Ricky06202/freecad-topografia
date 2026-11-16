@@ -20,7 +20,8 @@ def refresh(catalog, project, rows):
     color.rgb.setValue(1.0, 1.0, 1.0)
     labels.addChild(color)
     font = coin.SoFont()
-    font.size.setValue(16)
+    font.name.setValue("Arial:Bold")
+    font.size.setValue(18)
     labels.addChild(font)
     for row in rows:
         point = coin.SoSeparator()

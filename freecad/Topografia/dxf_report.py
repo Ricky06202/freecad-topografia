@@ -16,7 +16,7 @@ def _name(value):
     return " ".join(value.replace("\r", " ").replace("\n", " ").split())[:100]
 
 
-def create_dxf(points, title="Parcela", metadata=None, closed=True, scene_traces=None, scene_points=None):
+def create_dxf(points, title="Parcela", metadata=None, closed=True, scene_traces=None, scene_points=None, scene_texts=None):
     stats = measure(points) if closed else measure_trace(points)
     metadata = metadata or {}
     size = max(
@@ -62,8 +62,11 @@ def create_dxf(points, title="Parcela", metadata=None, closed=True, scene_traces
                      "20", "{:.8f}".format(point.y), "30", "0.0", "0", "TEXT", "8", "ETIQUETAS",
                      "10", "{:.8f}".format(point.x + height / 2), "20", "{:.8f}".format(point.y + height / 2),
                      "40", "{:.4f}".format(height), "1", _name(point.name)])
+    for text, east, north in (scene_texts or []):
+        rows.extend(["0", "TEXT", "8", "ROTULOS", "10", "{:.8f}".format(east),
+                     "20", "{:.8f}".format(north), "40", "{:.4f}".format(height), "1", _name(text)])
     # Cajetín CAD simplificado a la derecha de la parcela: entidades editables.
-    all_points = list(points) + list(scene_points or []) + [p for trace, _ in (scene_traces or []) for p in trace]
+    all_points = list(points) + list(scene_points or []) + [p for trace, _ in (scene_traces or []) for p in trace] + [type(points[0])("", x, y) for _, x, y in (scene_texts or [])]
     x1 = max(p.x for p in all_points)
     y1 = max(p.y for p in all_points)
     start_x = x1 + max(height * 5, size * 0.1)
