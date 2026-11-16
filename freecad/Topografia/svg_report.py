@@ -13,12 +13,15 @@ from .sheet_layout import (
 )
 
 
-def create_svg(points, label="Parcela", metadata=None, closed=True):
+def create_svg(points, label="Parcela", metadata=None, closed=True, scene_traces=None, scene_points=None):
     metadata = metadata or {}
     metrics = measure(points) if closed else measure_trace(points)
     segments = side_rows(points, closed=closed)
-    x0, x1 = min(p.x for p in points), max(p.x for p in points)
-    y0, y1 = min(p.y for p in points), max(p.y for p in points)
+    scene_traces = scene_traces or []
+    scene_points = scene_points or []
+    all_points = list(points) + list(scene_points) + [p for trace, _ in scene_traces for p in trace]
+    x0, x1 = min(p.x for p in all_points), max(p.x for p in all_points)
+    y0, y1 = min(p.y for p in all_points), max(p.y for p in all_points)
     width, height = x1 - x0, y1 - y0
     requested = metadata.get("escala")
     if requested not in (None, "", "auto"):
@@ -91,6 +94,19 @@ def create_svg(points, label="Parcela", metadata=None, closed=True):
                     escape(segments[i]["rumbo"])),
             ])
 
+    for trace, is_closed in scene_traces:
+        coords = [xy(p) for p in trace]
+        path = " ".join(("M" if i == 0 else "L") + "{:.2f},{:.2f}".format(x, y)
+                        for i, (x, y) in enumerate(coords)) + ("Z" if is_closed else "")
+        rows.append('<path data-scene-trace="1" d="{}" fill="none" stroke="#087b72" stroke-width="3"/>'.format(path))
+    seen = {(p.name, p.x, p.y) for p in points}
+    for p in list(scene_points) + [p for trace, _ in scene_traces for p in trace]:
+        if (p.name, p.x, p.y) in seen:
+            continue
+        seen.add((p.name, p.x, p.y))
+        x, y = xy(p)
+        rows.append('<circle cx="{:.2f}" cy="{:.2f}" r="5" fill="#087b72"/>'.format(x, y))
+        rows.append('<text x="{:.2f}" y="{:.2f}" font-family="sans-serif" font-size="14" fill="#123">{}</text>'.format(x+8, y-10, escape(p.name)))
     rows.extend(front_tables(points, closed=closed))
     rows.extend(title_block(metadata, closed, metrics))
     rows.append('</svg>')
