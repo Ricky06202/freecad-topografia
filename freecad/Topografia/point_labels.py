@@ -6,6 +6,36 @@ from pivy import coin
 _nodes = {}
 
 
+def _label_image(value):
+    """Dibuja texto en negrita con Qt y lo muestra en píxeles del visor."""
+    from PySide import QtCore, QtGui
+    font = QtGui.QFont('Sans Serif')
+    font.setPixelSize(22)
+    font.setBold(True)
+    metrics = QtGui.QFontMetrics(font)
+    text = str(value)
+    width = max(1, metrics.boundingRect(text).width() + 8)
+    height = max(1, metrics.height() + 6)
+    image = QtGui.QImage(width, height, QtGui.QImage.Format_RGBA8888)
+    image.fill(QtCore.Qt.transparent)
+    painter = QtGui.QPainter(image)
+    try:
+        painter.setRenderHint(QtGui.QPainter.TextAntialiasing)
+        painter.setFont(font)
+        painter.setPen(QtCore.Qt.white)
+        painter.drawText(3, 3 + metrics.ascent(), text)
+    finally:
+        painter.end()
+    image = image.mirrored(False, True)
+    bits = image.bits()
+    if hasattr(bits, 'setsize'):
+        bits.setsize(image.byteCount())
+    pixels = bytes(bits)
+    node = coin.SoImage()
+    node.image.setValue(coin.SbVec2s(width, height), 4, pixels)
+    return node
+
+
 def refresh(catalog, project, rows):
     root = catalog.ViewObject.RootNode
     key = (catalog.Document.Name, catalog.Name)
@@ -19,10 +49,6 @@ def refresh(catalog, project, rows):
     color = coin.SoBaseColor()
     color.rgb.setValue(1.0, 1.0, 1.0)
     labels.addChild(color)
-    font = coin.SoFont()
-    font.name.setValue("Arial:Bold")
-    font.size.setValue(18)
-    labels.addChild(font)
     for row in rows:
         point = coin.SoSeparator()
         position = coin.SoTranslation()
@@ -32,9 +58,7 @@ def refresh(catalog, project, rows):
             float(row.get('cota', 0)) * 1000,
         )
         point.addChild(position)
-        name = coin.SoText2()
-        name.string.setValue(str(row['nombre']))
-        point.addChild(name)
+        point.addChild(_label_image(row['nombre']))
         labels.addChild(point)
     root.addChild(labels)
     _nodes[key] = (root, labels)
