@@ -2,7 +2,9 @@
 
 Banco de trabajo (Workbench) para dibujar líneas abiertas (calles, caminos y ejes), parcelas cerradas y consultar longitudes, área y perímetro. Interfaz en español; proyecto piloto para uso personal.
 
-> Estado: prototipo 0.9.10. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+> Estado: versión 1.0.0. El usuario confirmó que una versión anterior arrancó y funcionó en FreeCAD. **La selección rectangular, el tamaño de punto y el diálogo de orden 0.7 siguen pendientes de prueba manual en FreeCAD**, en especial clics en el visor, curvas, subdivisiones y escala al imprimir. No sustituye levantamientos, comprobaciones ni planos firmados por profesionales. El trabajo con coordenadas geográficas (latitud/longitud), sistemas de referencia, linderos oficiales y georreferenciación vendrá después.
+
+La versión 1.0.0 incluye en PDF el dibujo visible, una tabla completa de puntos y anexos con coordenadas, rumbos y distancias por cada trazado; las líneas abiertas no se cierran. SVG coloca las láminas verticalmente y DXF incluye cuadros editables. La visualización puede requerir revisión manual cuando hay muchos rótulos cercanos.
 
 Las secciones con versiones anteriores son un historial de cambios, no la versión instalada.
 

@@ -10,7 +10,8 @@ import FreeCADGui as Gui
 from PySide import QtCore, QtGui, QtSvg, QtWidgets
 
 from .commands import _selected_parcel, _points
-from .svg_report import create_svg, coordinate_annex_pages, traverse_annex_pages
+from .svg_report import create_svg, stack_svg_pages
+from .sheet_layout import complete_scene_annex_pages
 from .dxf_report import create_dxf
 from .ui_resources import icon_path
 from .sheet_scene import collect_scene
@@ -25,8 +26,8 @@ class PlanDialog(QtWidgets.QDialog):
         self.result = None
         form = QtWidgets.QFormLayout(self)
         help_text = QtWidgets.QLabel(
-            "El dibujo incluye los puntos y trazados topográficos visibles. "
-            "Los cuadros y mediciones corresponden al trazado seleccionado. "
+            "El plano incluye los puntos y trazados topográficos visibles. "
+            "Los cuadros completos de cada trazado se incluyen en anexos. "
             "El plano incluye cuadro de coordenadas, cuadro de rumbos "
             "y distancias, y cajetín con espacio en blanco para firma y sello. "
             "Los cuadros largos continúan en anexos PDF. "
@@ -227,36 +228,38 @@ class CreateSheet:
         try:
             points = _points(parcel)
             closed = getattr(parcel, "TipoTrazado", "") != "Abierto"
+            others = [o for o in parcel.Document.Objects
+                      if o is not parcel and hasattr(o, 'CoordenadasJSON')
+                      and getattr(getattr(o, 'ViewObject', None), 'Visibility', False)
+                      and not (hasattr(o, 'isDerivedFrom') and o.isDerivedFrom('App::DocumentObjectGroup'))]
+            if len(others) != len(scene_traces):
+                raise ValueError('No se pudieron asociar los nombres de todos los trazados')
             if fmt in ("svg", "pdf"):
                 svg = create_svg(points, parcel.Label, values, closed=closed,
-                                 scene_traces=scene_traces, scene_points=scene_points, scene_texts=scene_texts)
+                                 scene_traces=scene_traces, scene_points=scene_points, scene_texts=scene_texts,
+                                 scene_names=[o.Label for o in others])
+                details = [(parcel.Label, points, closed)] + [
+                    (obj.Label, trace, is_closed)
+                    for obj, (trace, is_closed) in zip(others, scene_traces)]
+                pages = [svg] + complete_scene_annex_pages(details, scene_points, values)
                 if fmt == "svg":
-                    path.write_text(svg, encoding="utf-8")
+                    path.write_text(stack_svg_pages(pages), encoding="utf-8")
                 else:
-                    pages = [svg]
-                    pages.extend(coordinate_annex_pages(
-                        points, parcel.Label, values
-                    ))
-                    pages.extend(traverse_annex_pages(
-                        points, parcel.Label, values, closed=closed
-                    ))
                     _write_pdf(path, pages)
             else:
                 dxf = create_dxf(
                     points, parcel.Label, values, closed=closed,
-                    scene_traces=scene_traces, scene_points=scene_points, scene_texts=scene_texts
+                    scene_traces=scene_traces, scene_points=scene_points, scene_texts=scene_texts,
+                    scene_names=[o.Label for o in others]
                 )
                 if fmt == "dxf":
                     path.write_text(dxf, encoding="ascii", newline="")
                 else:
                     _write_dwg(path, dxf)
-            from .sheet_layout import VISIBLE_COORDS, VISIBLE_SIDES, side_rows
-            has_annex = (len(points) > VISIBLE_COORDS or
-                         len(side_rows(points, closed=closed)) > VISIBLE_SIDES)
             extra = (
-                "\n\nNota: El SVG solo contiene la portada. "
-                "Usa PDF para imprimir todos los cuadros anexos."
-                if fmt == "svg" and has_annex else ""
+                "\n\nEl SVG contiene las láminas una debajo de otra; "
+                "para imprimir por páginas utiliza PDF."
+                if fmt == "svg" else ""
             )
             QtWidgets.QMessageBox.information(
                 Gui.getMainWindow(), "Plano generado",
