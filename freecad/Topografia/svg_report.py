@@ -4,21 +4,38 @@ La hoja principal contiene un extracto de ambos cuadros; si hay más filas,
 el generador de PDF añade anexos con TODOS los puntos y tramos restantes.
 """
 from xml.sax.saxutils import escape
+from xml.etree import ElementTree
 
 from .geometry import measure
 from .trace_math import measure_trace
 from .sheet_layout import (
-    front_tables, side_rows, title_block,
-    coordinate_annex_pages, traverse_annex_pages,
+    front_tables, front_scene_tables, side_rows, title_block,
+    coordinate_annex_pages, traverse_annex_pages, format_measurement,
 )
 
 
-def create_svg(points, label="Parcela", metadata=None, closed=True, scene_traces=None, scene_points=None, scene_texts=None):
-    metadata = metadata or {}
+def stack_svg_pages(pages):
+    """Guarda varias láminas una debajo de otra en un solo SVG."""
+    root = ElementTree.Element('{http://www.w3.org/2000/svg}svg', {
+        'width': '297mm', 'height': '{}mm'.format(210 * len(pages)),
+        'viewBox': '0 0 1122 {}'.format(794 * len(pages))})
+    for index, page in enumerate(pages):
+        sheet = ElementTree.fromstring(page)
+        sheet.set('x', '0')
+        sheet.set('y', str(794 * index))
+        sheet.set('width', '1122')
+        sheet.set('height', '794')
+        root.append(sheet)
+    return ElementTree.tostring(root, encoding='unicode', xml_declaration=True)
+
+
+def create_svg(points, label="Parcela", metadata=None, closed=True, scene_traces=None, scene_points=None, scene_texts=None, scene_names=None):
+    metadata = dict(metadata or {})
     metrics = measure(points) if closed else measure_trace(points)
     segments = side_rows(points, closed=closed)
     scene_traces = scene_traces or []
     scene_points = scene_points or []
+    metadata['_varios_trazados'] = bool(scene_traces)
     all_points = list(points) + list(scene_points) + [p for trace, _ in scene_traces for p in trace] + [type(points[0])("", x, y) for _, x, y in (scene_texts or [])]
     x0, x1 = min(p.x for p in all_points), max(p.x for p in all_points)
     y0, y1 = min(p.y for p in all_points), max(p.y for p in all_points)
@@ -65,10 +82,11 @@ def create_svg(points, label="Parcela", metadata=None, closed=True, scene_traces
         '<rect width="1122" height="794" fill="white"/>',
         '<rect x="20" y="20" width="1082" height="754" fill="none" stroke="#234" stroke-width="2"/>',
         '<text x="55" y="67" font-family="sans-serif" font-size="27" font-weight="bold" fill="#124">{}</text>'.format(
-            "PLANO DE PARCELA" if closed else "PLANO DE TRAZADO ABIERTO"
+            "PLANO TOPOGRÁFICO" if scene_traces else
+            ("PLANO DE PARCELA" if closed else "PLANO DE TRAZADO ABIERTO")
         ),
         '<text x="55" y="103" font-family="sans-serif" font-size="16" fill="#456">{}</text>'.format(
-            escape(str(label))
+            escape('Parcelas y trazados visibles' if scene_traces else str(label))
         ),
         '<rect x="55" y="130" width="750" height="484" fill="#f6faf9" stroke="#abc"/>',
         '<path d="{}" fill="{}" stroke="#087b72" stroke-width="3"/>'.format(
@@ -86,9 +104,9 @@ def create_svg(points, label="Parcela", metadata=None, closed=True, scene_traces
         if i < len(segments):
             nx, ny = positions[(i + 1) % len(positions)]
             rows.extend([
-                '<text x="{:.2f}" y="{:.2f}" font-family="sans-serif" font-size="12" fill="#456" text-anchor="middle">{:.2f} m</text>'.format(
+                '<text x="{:.2f}" y="{:.2f}" font-family="sans-serif" font-size="12" fill="#456" text-anchor="middle">{} m</text>'.format(
                     (x + nx) / 2, (y + ny) / 2 - 9,
-                    segments[i]["horizontal_m"]),
+                    format_measurement(segments[i]["horizontal_m"])),
                 '<text x="{:.2f}" y="{:.2f}" font-family="sans-serif" font-size="10" fill="#345" text-anchor="middle">{}</text>'.format(
                     (x + nx) / 2, (y + ny) / 2 + 7,
                     escape(segments[i]["rumbo"])),
@@ -98,7 +116,15 @@ def create_svg(points, label="Parcela", metadata=None, closed=True, scene_traces
         coords = [xy(p) for p in trace]
         path = " ".join(("M" if i == 0 else "L") + "{:.2f},{:.2f}".format(x, y)
                         for i, (x, y) in enumerate(coords)) + ("Z" if is_closed else "")
-        rows.append('<path data-scene-trace="1" d="{}" fill="none" stroke="#087b72" stroke-width="3"/>'.format(path))
+        rows.append('<path data-scene-trace="1" d="{}" fill="{}" fill-opacity="0.35" stroke="#087b72" stroke-width="3"/>'.format(
+            path, '#c5e6dd' if is_closed else 'none'))
+        for i, side in enumerate(side_rows(trace, closed=is_closed)):
+            x, y = coords[i]
+            nx, ny = coords[(i + 1) % len(coords)]
+            rows.append('<text x="{:.2f}" y="{:.2f}" font-family="sans-serif" font-size="12" fill="#345" text-anchor="middle">{} m</text>'.format(
+                (x + nx) / 2, (y + ny) / 2 - 9, format_measurement(side['horizontal_m'])))
+            rows.append('<text x="{:.2f}" y="{:.2f}" font-family="sans-serif" font-size="10" fill="#345" text-anchor="middle">{}</text>'.format(
+                (x + nx) / 2, (y + ny) / 2 + 7, escape(side['rumbo'])))
     seen = {(p.name, p.x, p.y) for p in points}
     for p in list(scene_points) + [p for trace, _ in scene_traces for p in trace]:
         if (p.name, p.x, p.y) in seen:
@@ -110,7 +136,21 @@ def create_svg(points, label="Parcela", metadata=None, closed=True, scene_traces
     for text, east, north in (scene_texts or []):
         x, y = xy(type(points[0])("", east, north))
         rows.append('<text x="{:.2f}" y="{:.2f}" font-family="sans-serif" font-size="12" fill="#123">{}</text>'.format(x, y, escape(text)))
-    rows.extend(front_tables(points, closed=closed))
+    seen_table = set()
+    table_points = []
+    for p in list(points) + list(scene_points) + [p for trace, _ in scene_traces for p in trace]:
+        key = (p.name, p.x, p.y, p.z)
+        if key not in seen_table:
+            seen_table.add(key)
+            table_points.append(p)
+    if scene_traces or len(table_points) > len(points):
+        names = scene_names or []
+        summaries = [(label, points, closed)] + [
+            (names[i] if i < len(names) else 'Trazado {}'.format(i + 2), trace, is_closed)
+            for i, (trace, is_closed) in enumerate(scene_traces)]
+        rows.extend(front_scene_tables(table_points, summaries))
+    else:
+        rows.extend(front_tables(points, closed=closed))
     rows.extend(title_block(metadata, closed, metrics))
     rows.append('</svg>')
     return "\n".join(rows) + "\n"
