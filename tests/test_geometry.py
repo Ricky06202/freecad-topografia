@@ -39,6 +39,18 @@ class ParcelTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             measure(bad)
 
+    def test_small_crossing_is_rejected_as_crossing(self):
+        points = [Point('A', 0, 0), Point('B', -0.001, 0.002),
+                  Point('C', 0.002, 0.0003), Point('D', -0.002, 0.0004),
+                  Point('E', 0.001, 0.002)]
+        with self.assertRaisesRegex(ValueError, 'cruzan'):
+            measure(points)
+
+    def test_small_simple_polygon_is_valid(self):
+        points = [Point('A', 0, 0), Point('B', 0.002, 0),
+                  Point('C', 0.002, 0.001), Point('D', 0, 0.001)]
+        self.assertAlmostEqual(measure(points)['area_m2'], 0.000002)
+
     def test_duplicate_points(self):
         bad = [Point("A", 0, 0), Point("B", 10, 0),
                Point("C", 10, 0), Point("D", 0, 10)]
