@@ -89,7 +89,10 @@ def _intersect(a, b, c, d):
     ab_c, ab_d = _orient(a, b, c), _orient(a, b, d)
     cd_a, cd_b = _orient(c, d, a), _orient(c, d, b)
     eps = 1e-9
-    if ab_c * ab_d < -eps and cd_a * cd_b < -eps:
+    # Un cruce propio depende del signo, no de la magnitud del producto.
+    # Esto mantiene la detección al cambiar la escala del dibujo.
+    if (((ab_c > 0 and ab_d < 0) or (ab_c < 0 and ab_d > 0)) and
+            ((cd_a > 0 and cd_b < 0) or (cd_a < 0 and cd_b > 0))):
         return True
     return (
         (abs(ab_c) <= eps and _on_segment(a, b, c)) or
