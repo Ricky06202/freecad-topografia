@@ -9,7 +9,7 @@ import json
 import FreeCAD as App
 import FreeCADGui as Gui
 import Part
-from PySide import QtCore, QtWidgets
+from PySide import QtCore, QtGui, QtWidgets
 
 from .commands import _create_parcel
 from .geometry import Point
@@ -50,13 +50,16 @@ def create_open_trace(points, doc, label="Línea abierta"):
 
 
 class TraceDialog(QtWidgets.QDialog):
-    def __init__(self, rows, indices):
+    def __init__(self, rows, indices, from_box=False):
         super().__init__(Gui.getMainWindow())
         self.setWindowTitle("Trazar desde puntos")
         self.setMinimumSize(440, 340)
         self.result = None
         self.indices = list(indices)
         self.rows = rows
+        self.from_box = from_box
+        self.suggested = False
+        self._suggested_order = None
 
         layout = QtWidgets.QVBoxLayout(self)
         top = QtWidgets.QFormLayout()
@@ -98,6 +101,11 @@ class TraceDialog(QtWidgets.QDialog):
         buttons.addWidget(down)
         buttons.addStretch()
         layout.addLayout(buttons)
+        self.preview = QtWidgets.QLabel()
+        self.preview.setMinimumSize(240, 140)
+        self.preview.setAlignment(QtCore.Qt.AlignCenter)
+        layout.addWidget(self.preview)
+        self.kind.currentIndexChanged.connect(self.suggest_for_box)
         self.summary = QtWidgets.QLabel()
         self.summary.setWordWrap(True)
         layout.addWidget(self.summary)
@@ -129,9 +137,60 @@ class TraceDialog(QtWidgets.QDialog):
         self.list.insertItem(target, item)
         self.list.setCurrentRow(target)
 
+    def suggest_for_box(self, *_):
+        if not self.from_box:
+            return
+        if self.kind.currentData() != 'closed':
+            # Al volver a línea abierta no imponerle un contorno cerrado.
+            if self.suggested and self.ordered() == self._suggested_order:
+                self.reorder_list(self.indices)
+            self.suggested = False
+            return
+        if self.suggested:
+            return
+        from .selection_box_math import suggest_boundary
+        order = suggest_boundary(self.rows, self.indices)
+        self.reorder_list(order)
+        self._suggested_order = order
+        self.suggested = True
+
+    def reorder_list(self, order):
+        items = {}
+        while self.list.count():
+            item = self.list.takeItem(0)
+            items[int(item.data(QtCore.Qt.UserRole))] = item
+        for index in order:
+            self.list.addItem(items[index])
+
+    def draw_preview(self, order, closed):
+        pix = QtGui.QPixmap(300, 160)
+        pix.fill(QtGui.QColor('white'))
+        painter = QtGui.QPainter(pix)
+        try:
+            xy = [(float(self.rows[i]['este']), float(self.rows[i]['norte'])) for i in order]
+            if not xy:
+                return
+            x0, x1 = min(x for x, y in xy), max(x for x, y in xy)
+            y0, y1 = min(y for x, y in xy), max(y for x, y in xy)
+            scale = min(250 / max(x1-x0, 1e-12), 110 / max(y1-y0, 1e-12))
+            coords = [QtCore.QPointF(25+(x-x0)*scale, 135-(y-y0)*scale) for x,y in xy]
+            painter.setPen(QtGui.QPen(QtGui.QColor('#087b72'), 2))
+            for a,b in zip(coords, coords[1:]):
+                painter.drawLine(a,b)
+            if closed and len(coords) > 2:
+                painter.drawLine(coords[-1],coords[0])
+            painter.setPen(QtGui.QColor('#123344'))
+            for point, index in zip(coords, order):
+                painter.drawEllipse(point, 3, 3)
+                painter.drawText(point + QtCore.QPointF(4,-4), str(self.rows[index]['nombre']))
+        finally:
+            painter.end()
+            self.preview.setPixmap(pix)
+
     def update_preview(self, *_):
         kind = self.kind.currentData()
         order = self.ordered()
+        self.draw_preview(order, kind == 'closed')
         try:
             if kind == "open":
                 points = trace_from_rows(self.rows, order)
@@ -147,6 +206,7 @@ class TraceDialog(QtWidgets.QDialog):
                 points = parcel_from_rows(self.rows, order)
                 info = measure(points)
                 self.summary.setText(
+                    ("Orden sugerido: revisa el contorno. " if self.suggested else "") +
                     "Parcela cerrada · Área: {:.3f} m² · "
                     "Perímetro: {:.3f} m".format(
                         info["area_m2"], info["perimeter_m"]
@@ -192,7 +252,8 @@ class TraceCommand:
                     "Ctrl+clic o recuadro; después pulsa Trazar."
                 )
             rows = read_catalog(catalog)
-            dialog = TraceDialog(rows, indices)
+            from . import selection_bridge
+            dialog = TraceDialog(rows, indices, selection_bridge.from_box_selection(catalog))
             if dialog.exec() != QtWidgets.QDialog.Accepted:
                 return
             kind, order, points = dialog.result
