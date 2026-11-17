@@ -3,6 +3,21 @@
 No decide el orden del polígono: un recuadro selecciona un CONJUNTO.
 El recorrido se define después, antes de crear la parcela.
 """
+import math
+
+
+def suggest_boundary(rows, indices):
+    """Propone un orden angular; el usuario debe confirmar el lindero."""
+    indices = list(indices)
+    if len(indices) < 3 or len(indices) != len(set(indices)):
+        raise ValueError("Selecciona al menos tres puntos diferentes")
+    coords = [(float(rows[i]['este']), float(rows[i]['norte'])) for i in indices]
+    cx = sum(x for x, _ in coords) / len(coords)
+    cy = sum(y for _, y in coords) / len(coords)
+    ordered = sorted(indices, key=lambda i: math.atan2(float(rows[i]['norte']) - cy,
+                                                        float(rows[i]['este']) - cx))
+    start = ordered.index(indices[0])
+    return ordered[start:] + ordered[:start]
 
 
 def rectangle_indices(projected, first, last, margin_px=0):

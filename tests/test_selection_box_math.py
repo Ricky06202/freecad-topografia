@@ -28,6 +28,18 @@ class BoxSelectMathTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             rectangle_indices(self.points, (0, 0), (3, 3), -1)
 
+class SuggestedBoundaryTests(unittest.TestCase):
+    def test_suggests_non_crossing_contour_from_unordered_points(self):
+        from freecad.Topografia.selection_box_math import suggest_boundary
+        from freecad.Topografia.station_model import parcel_from_rows
+        rows = [dict(nombre='P1',este=3,norte=0), dict(nombre='P2',este=2,norte=4),
+                dict(nombre='P3',este=10,norte=.5), dict(nombre='P7',este=0,norte=.7),
+                dict(nombre='P8',este=6,norte=4)]
+        result = suggest_boundary(rows, [0,1,2,3,4])
+        self.assertEqual(result[0], 0)
+        self.assertEqual(set(result), set(range(5)))
+        parcel_from_rows(rows, result)
+
 
 if __name__ == "__main__":
     unittest.main()
